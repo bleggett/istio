@@ -432,10 +432,19 @@ func (s *Server) CreateRulesOnNode(ztunnelVeth, ztunnelIP string, captureDNS boo
 			"--nfmask", constants.ProxyMask,
 			"--ctmask", constants.ProxyMask,
 		),
+		//Skip hostip src (healthchecks,etc)
 		newIptableRule(
 			constants.TableMangle,
 			constants.ChainZTunnelOutput,
 			"--source", HostIP,
+			"-j", "MARK",
+			"--set-mark", constants.ConnSkipMask,
+		),
+		//Skip externalIP LoadBalanced packets
+		newIptableRule(
+			constants.TableMangle,
+			constants.ChainZTunnelOutput,
+			"--source", constants.InboundTunIP,
 			"-j", "MARK",
 			"--set-mark", constants.ConnSkipMask,
 		),
