@@ -19,6 +19,7 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.ProcessingException;
@@ -203,6 +204,15 @@ public class LibertyRestEndpoint extends Application {
       }
 
       String jsonResStr = getJsonResponse(Integer.toString(productId), starsReviewer1, starsReviewer2);
+      return Response.ok().type(MediaType.APPLICATION_JSON).entity(jsonResStr).build();
+    }
+
+    @POST
+    @Path("/reviews")
+    public Response submitBookReview(@Context HttpHeaders requestHeaders, String body) {
+      String userId = requestHeaders.getRequestHeader("user-id").get(0);
+      String jsonResStr = "{status: \"SUCCESS\", message: \"Thanks for your review, " + userId + "!\"}";
+      System.out.println("Successfully received new review from user - " + userId);
       return Response.ok().type(MediaType.APPLICATION_JSON).entity(jsonResStr).build();
     }
 }
