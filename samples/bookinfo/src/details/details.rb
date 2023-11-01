@@ -73,7 +73,9 @@ def get_book_details(id, headers)
         'publisher' => 'PublisherA',
         'language' => 'English',
         'ISBN-10' => '1234567890',
-        'ISBN-13' => '123-1234567890'
+        'ISBN-13' => '123-1234567890',
+        'wordcount' => '97,492',
+        'authorssn' => '123-45-6789'
     }
 end
 
@@ -114,7 +116,9 @@ def fetch_details_from_external_service(isbn, id, headers)
         'publisher' => book['publisher'],
         'language' => language,
         'ISBN-10' => isbn10,
-        'ISBN-13' => isbn13
+        'ISBN-13' => isbn13,
+        'wordcount' => '97,492',
+        'authorssn' => '123-45-6789'
   }
 
 end
