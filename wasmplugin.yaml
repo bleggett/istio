@@ -1,0 +1,12 @@
+apiVersion: extensions.istio.io/v1alpha1
+kind: WasmPlugin
+metadata:
+  name: httpbin-redact
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      istio.io/gateway-name: httpbin
+  pluginName: redact_ssn
+  imagePullPolicy: Always
+  url: oci://webassemblyhub.io/bleggett/no-ssn:0.0.3
