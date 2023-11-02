@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
       - name: details
-        image: docker.io/istio/examples-bookinfo-details-v1:1.18.0
+        image: gcr.io/solo-oss/bleggett/examples-bookinfo-details-v1:ben-local-arm64-5c13a38d88-debug
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9080
