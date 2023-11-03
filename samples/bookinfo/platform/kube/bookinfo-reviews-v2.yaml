@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
       - name: reviews
-        image: gcr.io/solo-oss/bleggett/examples-bookinfo-reviews-v2:ben-local-arm64-5c13a38d88-debug
+        image: docker.io/istio/examples-bookinfo-reviews-v2:1.18.0
         imagePullPolicy: IfNotPresent
         env:
         - name: LOG_DIR

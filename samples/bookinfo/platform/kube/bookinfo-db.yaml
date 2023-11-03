@@ -47,7 +47,7 @@ spec:
     spec:
       containers:
       - name: mongodb 
-        image: gcr.io/solo-oss/bleggett/examples-bookinfo-mongodb:ben-local-arm64-5c13a38d88-debug
+        image: docker.io/istio/examples-bookinfo-mongodb:1.18.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 27017
