@@ -9747,7 +9747,7 @@ data:
         },
         "enabled": true,
         "externalIstiod": false,
-        "hub": "gcr.io/solo-oss/bleggett",
+        "hub": "localhost:5000",
         "imagePullPolicy": "",
         "imagePullSecrets": [],
         "istioNamespace": "istio-system",
@@ -10088,7 +10088,7 @@ spec:
           valueFrom:
             resourceFieldRef:
               resource: limits.cpu
-        image: gcr.io/solo-oss/bleggett/install-cni:ben-local-arm64-3a2a8e09ce-debug
+        image: localhost:5000/install-cni:ben-local-arm64-3a2a8e09ce-debug
         name: install-cni
         readinessProbe:
           httpGet:
@@ -10200,7 +10200,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.serviceAccountName
-        image: gcr.io/solo-oss/bleggett/ztunnel:ben-local-arm64-3a2a8e09ce-debug
+        image: localhost:5000/ztunnel:ben-local-arm64-3a2a8e09ce-debug
         name: istio-proxy
         ports:
         - containerPort: 15020
@@ -10372,7 +10372,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        image: gcr.io/solo-oss/bleggett/proxyv2:ben-local-arm64-3a2a8e09ce-debug
+        image: localhost:5000/proxyv2:ben-local-arm64-3a2a8e09ce-debug
         name: istio-proxy
         ports:
         - containerPort: 15021
@@ -10581,7 +10581,7 @@ spec:
         - name: PLATFORM
           value: ""
         # image: docker.io/istio/pilot:1.19.1
-        image: gcr.io/solo-oss/bleggett/pilot:ben-local-arm64-3a2a8e09ce-debug
+        image: localhost:5000/pilot:ben-local-arm64-3a2a8e09ce-debug
         name: discovery
         ports:
         - containerPort: 8080

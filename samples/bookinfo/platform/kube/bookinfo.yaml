@@ -72,7 +72,7 @@ spec:
       serviceAccountName: bookinfo-details
       containers:
       - name: details
-        image: gcr.io/solo-oss/bleggett/examples-bookinfo-details-v1:ben-local-arm64-5c13a38d88-debug
+        image: localhost:5000/examples-bookinfo-details-v1:ben-local-arm64-5c13a38d88-debug
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9080
@@ -123,7 +123,7 @@ spec:
       serviceAccountName: bookinfo-ratings
       containers:
       - name: ratings
-        image: docker.io/istio/examples-bookinfo-ratings-v1:1.18.0
+        image: localhost:5000/examples-bookinfo-ratings-v1:1.18.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9080
@@ -174,7 +174,7 @@ spec:
       serviceAccountName: bookinfo-reviews
       containers:
       - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v1:1.18.0
+        image: localhost:5000/examples-bookinfo-reviews-v1:1.18.0
         imagePullPolicy: IfNotPresent
         env:
         - name: LOG_DIR
@@ -214,7 +214,7 @@ spec:
       serviceAccountName: bookinfo-reviews
       containers:
       - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v2:1.18.0
+        image: localhost:5000/examples-bookinfo-reviews-v2:1.18.0
         imagePullPolicy: IfNotPresent
         env:
         - name: LOG_DIR
@@ -254,7 +254,7 @@ spec:
       serviceAccountName: bookinfo-reviews
       containers:
       - name: reviews
-        image: docker.io/istio/examples-bookinfo-reviews-v3:1.18.0
+        image: localhost:5000/examples-bookinfo-reviews-v3:1.18.0
         imagePullPolicy: IfNotPresent
         env:
         - name: LOG_DIR
@@ -322,7 +322,7 @@ spec:
       serviceAccountName: bookinfo-productpage
       containers:
       - name: productpage
-        image: gcr.io/solo-oss/bleggett/examples-bookinfo-productpage-v1:ben-local-arm64-5c13a38d88-debug
+        image: localhost:5000/examples-bookinfo-productpage-v1:ben-local-arm64-5c13a38d88-debug
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9080
