@@ -23,7 +23,7 @@ spec:
             revision: '{{revision}}'
           valueFiles:
             - >-
-              $values/manifests/charts/istio-control/istio-discovery/ambient-values.yaml
+              $values/manifests/charts/istio-discovery/ambient-values.yaml
         chart: istiod
       - repoURL: 'https://github.com/istio/istio.git'
         targetRevision: HEAD

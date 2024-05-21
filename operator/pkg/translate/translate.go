@@ -125,7 +125,7 @@ func NewTranslator() *Translator {
 				ResourceType:         "Deployment",
 				ResourceName:         "istiod",
 				ContainerName:        "discovery",
-				HelmSubdir:           "istio-control/istio-discovery",
+				HelmSubdir:           "istio-discovery",
 				ToHelmValuesTreeRoot: "pilot",
 			},
 			name.IngressComponentName: {

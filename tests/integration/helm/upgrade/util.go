@@ -261,12 +261,12 @@ func performRevisionTagsUpgradeFunc(previousVersion string) func(framework.TestC
 
 		// install the charts from this branch with revision set to "latest"
 		// helm upgrade istio-base ../manifests/charts/base --namespace istio-system -f values.yaml
-		// helm install istiod-latest ../manifests/charts/istio-control/istio-discovery -f values.yaml
+		// helm install istiod-latest ../manifests/charts/istio-discovery -f values.yaml
 		overrideValuesFile = helmtest.GetValuesOverrides(t, s.Image.Hub, s.Image.Tag, s.Image.Variant, latestRevisionTag, false)
 		helmtest.InstallIstioWithRevision(t, cs, h, "", latestRevisionTag, overrideValuesFile, true, false)
 		helmtest.VerifyInstallation(t, cs, helmtest.DefaultNamespaceConfig, false, false, "")
 
-		// helm template istiod-latest ../manifests/charts/istio-control/istio-discovery --namespace istio-system
+		// helm template istiod-latest ../manifests/charts/istio-discovery --namespace istio-system
 		//    -s templates/revision-tags.yaml --set revision=latest --set revisionTags={canary}
 		helmtest.SetRevisionTag(t, h, "", latestRevisionTag, canaryTag, helmtest.ManifestsChartPath, "")
 		helmtest.VerifyMutatingWebhookConfigurations(t, cs, []string{
@@ -285,7 +285,7 @@ func performRevisionTagsUpgradeFunc(previousVersion string) func(framework.TestC
 		sanitycheck.RunTrafficTestClientServer(t, oldClient, newServer)
 
 		// change the mutating webhook configuration to use the latest revision (istiod-latest service in istio-system)
-		// helm template istiod-latest ../manifests/charts/istio-control/istio-discovery --namespace istio-system
+		// helm template istiod-latest ../manifests/charts/istio-discovery --namespace istio-system
 		//    -s templates/revision-tags.yaml --set revision=latest --set revisionTags={prod}
 		helmtest.SetRevisionTag(t, h, "", latestRevisionTag, prodTag, helmtest.ManifestsChartPath, "")
 

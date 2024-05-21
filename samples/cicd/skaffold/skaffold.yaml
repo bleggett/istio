@@ -55,7 +55,7 @@ profiles:
       helm:
         releases:
           - name: istiod
-            chartPath: ../../../manifests/charts/istio-control/istio-discovery
+            chartPath: ../../../manifests/charts/istio-discovery
             namespace: istio-system
   - name: run
     activation:

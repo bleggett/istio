@@ -38,7 +38,7 @@ const (
 	DefaultRevisionName = "default"
 
 	defaultChart            = "default"
-	pilotDiscoveryChart     = "istio-control/istio-discovery"
+	pilotDiscoveryChart     = "istio-discovery"
 	revisionTagTemplateName = "revision-tags.yaml"
 	vwhTemplateName         = "validatingwebhook.yaml"
 

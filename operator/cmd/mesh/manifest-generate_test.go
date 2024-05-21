@@ -51,7 +51,7 @@ import (
 )
 
 const (
-	testIstioDiscoveryChartPath = "charts/istio-control/istio-discovery/templates"
+	testIstioDiscoveryChartPath = "charts/istio-discovery/templates"
 	operatorSubdirFilePath      = "manifests"
 )
 

@@ -66,7 +66,7 @@ import (
 )
 
 const (
-	templateFile = "manifests/charts/istio-control/istio-discovery/files/waypoint.yaml"
+	templateFile = "manifests/charts/istio-discovery/files/waypoint.yaml"
 )
 
 func IsL7() echo.Checker {

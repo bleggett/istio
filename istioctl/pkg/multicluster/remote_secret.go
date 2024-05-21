@@ -426,7 +426,7 @@ func createServiceAccount(client kube.CLIClient, opt RemoteSecretOptions) error 
 func generateServiceAccountYAML(opt RemoteSecretOptions) (string, error) {
 	// Create a renderer for the base installation.
 	baseRenderer := helm.NewHelmRenderer(opt.ManifestsPath, "base", "Base", opt.Namespace, nil)
-	discoveryRenderer := helm.NewHelmRenderer(opt.ManifestsPath, "istio-control/istio-discovery", "Pilot", opt.Namespace, nil)
+	discoveryRenderer := helm.NewHelmRenderer(opt.ManifestsPath, "istio-discovery", "Pilot", opt.Namespace, nil)
 
 	baseTemplates := []string{"reader-serviceaccount.yaml"}
 	discoveryTemplates := []string{"clusterrole.yaml", "clusterrolebinding.yaml"}

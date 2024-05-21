@@ -24,10 +24,10 @@ helm install istio-base -n istio-system manifests/charts/base --set profile=open
 helm install istio-cni -n kube-system manifests/charts/istio-cni --set profile=openshift
 ```
 
-3) `istio-control/istio-discovery` chart installs a revision of istiod.
+3) `istio-discovery` chart installs a revision of istiod.
 
 ```console
- helm install -n istio-system istiod manifests/charts/istio-control/istio-discovery --set profile=openshift
+ helm install -n istio-system istiod manifests/charts/istio-discovery --set profile=openshift
 ```
 
 4) `gateways` charts install a load balancer with `ingress` and `egress`.
