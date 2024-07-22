@@ -59,7 +59,7 @@ func (in *Installer) installAll(ctx context.Context) (sets.String, error) {
 	// Install kubeconfig (if needed) - we write/update this in the shared node CNI netdir,
 	// which may be watched by other CNIs, and so we don't want to trigger writes to this file
 	// unless it's missing or the contents are not what we expect.
-	if err := maybeWriteKubeConfigFile(in.cfg); err != nil {
+	if err := writeKubeConfigFile(in.cfg); err != nil {
 		cniInstalls.With(resultLabel.Value(resultCreateKubeConfigFailure)).Increment()
 		return copiedFiles, fmt.Errorf("write kubeconfig: %v", err)
 	}
