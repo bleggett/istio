@@ -1,7 +1,9 @@
 # Deploy
-# ik waypoint apply --wait --enroll-namespace --name waypoint
-# k scale deployment waypoint --replicas=0 -n default
+# Create + delete a WP to generate istio's gateway classes:
+# icdev waypoint apply && icdev waypoint delete --all
 # k annotate gc istio-waypoint ambient.istio.io/waypoint-inbound-binding=PROXY/15088
+# kubectl label ns default istio.io/use-waypoint=simple-waypoint
+# k scale deployment waypoint --replicas=0 -n default
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -229,7 +231,7 @@ data:
                   - endpoint:
                       address:
                         socket_address:
-                          address: hyper-headless.default.svc
+                          address: httpbin.default.svc
                           port_value: 8080
 kind: ConfigMap
 metadata:
