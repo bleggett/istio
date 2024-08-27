@@ -1,0 +1,264 @@
+# Deploy
+# ik waypoint apply --wait --enroll-namespace --name waypoint
+# k scale deployment waypoint --replicas=0 -n default
+# k annotate gc istio-waypoint ambient.istio.io/waypoint-inbound-binding=PROXY/15088
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-waypoint
+spec:
+  selector:
+    matchLabels:
+      app: simple-waypoint
+  template:
+    metadata:
+      labels:
+        gateway.networking.k8s.io/gateway-name: simple-waypoint
+        app: simple-waypoint
+      annotations:
+        prometheus.io/path: /stats/prometheus
+        prometheus.io/port: "15020"
+        prometheus.io/scrape: "true"
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: gcr.io/istio-testing/proxyv2
+        name: istio-proxy
+        command:
+        - envoy
+        args:
+        - -c
+        - /envoy/config.yaml
+        - --concurrency
+        - "2"
+        - --file-flush-interval-msec
+        - "1000"
+        resources:
+          requests:
+            cpu: 2
+        volumeMounts:
+        - mountPath: /envoy
+          name: envoy
+      volumes:
+      - name: envoy
+        configMap:
+          name: static-waypoint-config
+          optional: false
+---
+apiVersion: v1
+data:
+  config.yaml: |-
+    node:
+      id: waypoint~0.0.0.0~static-waypoint.default~default.svc.cluster.local
+      cluster: inbound-vip|5201|http|baseline.default.svc.cluster.local
+    admin:
+      profile_path: /var/lib/istio/data/envoy.prof
+      address:
+        socket_address:
+          address: 127.0.0.1
+          port_value: 15000
+      access_log:
+        - name: envoy.access_loggers.file
+          typed_config:
+            '@type': type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog
+            path: /dev/stdout
+    static_resources:
+      listeners:
+        - name: inbound_proxy_protocol
+          address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 15088
+          listener_filters:
+            - name: "proxy_protocol_tlv"
+              typed_config:
+                '@type': type.googleapis.com/envoy.extensions.filters.listener.proxy_protocol.v3.ProxyProtocol
+                allow_requests_without_proxy_protocol: false
+                rules:
+                - tlv_type: 0xD0
+                  on_tlv_present:
+                    key: "peer_principal"
+                - tlv_type: 0xD1
+                  on_tlv_present:
+                    key: "hbone_host"
+                pass_through_tlvs:
+                  match_type: INCLUDE_ALL
+          filter_chain_matcher:
+                matcher_tree:
+                  input:
+                    name: destination_ip
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.matching.common_inputs.network.v3.DestinationIPInput
+                  prefix_match_map:
+                    map:
+                      # TODO we need the actual vip here
+                      "10.":
+                        action:
+                          name: vip
+                          typed_config:
+                            "@type": type.googleapis.com/google.protobuf.StringValue
+                            value: baseline
+          filter_chains:
+            - name: baseline
+              filters:
+                - name: proxy_protocol_authority
+                  typed_config:
+                    '@type': type.googleapis.com/envoy.extensions.filters.network.set_filter_state.v3.Config
+                    on_new_connection:
+                      - object_key: "io.istio.peer_principal"
+                        factory_key: "envoy.string"
+                        format_string:
+                          text_format_source:
+                            inline_string: "%DYNAMIC_METADATA(envoy.filters.listener.proxy_protocol:peer_principal)%"
+                - name: envoy.filters.network.http_connection_manager
+                  typed_config:
+                    '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                    stat_prefix: ingress_http
+                    access_log:
+                      - name: envoy.access_loggers.stdout
+                        typed_config:
+                          '@type': type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                    http_filters:
+                      - name: envoy.filters.http.grpc_stats
+                        typed_config:
+                          '@type': type.googleapis.com/envoy.extensions.filters.http.grpc_stats.v3.FilterConfig
+                          emit_filter_state: true
+                          stats_for_all_methods: false
+                      - name: envoy.filters.http.fault
+                        typed_config:
+                          '@type': type.googleapis.com/envoy.extensions.filters.http.fault.v3.HTTPFault
+                      - name: envoy.filters.http.cors
+                        typed_config:
+                          '@type': type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+                      - name: istio.stats
+                        typedConfig:
+                          '@type': type.googleapis.com/udpa.type.v1.TypedStruct
+                          typeUrl: type.googleapis.com/stats.PluginConfig
+                          value:
+                            reporter: SERVER_GATEWAY
+                      - name: envoy.filters.http.router
+                        typed_config:
+                          '@type': type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                    normalizePath: true
+                    pathWithEscapedSlashesAction: KEEP_UNCHANGED
+                    proxy100Continue: true
+                    requestIdExtension:
+                      typedConfig:
+                        '@type': type.googleapis.com/envoy.extensions.request_id.uuid.v3.UuidRequestIdConfig
+                        useRequestIdForTraceSampling: true
+                    tracing:
+                      clientSampling:
+                        value: 100
+                      customTags:
+                      - metadata:
+                          kind:
+                            request: {}
+                          metadataKey:
+                            key: envoy.filters.http.rbac
+                            path:
+                            - key: istio_dry_run_allow_shadow_effective_policy_id
+                        tag: istio.authorization.dry_run.allow_policy.name
+                      - metadata:
+                          kind:
+                            request: {}
+                          metadataKey:
+                            key: envoy.filters.http.rbac
+                            path:
+                            - key: istio_dry_run_allow_shadow_engine_result
+                        tag: istio.authorization.dry_run.allow_policy.result
+                      - metadata:
+                          kind:
+                            request: {}
+                          metadataKey:
+                            key: envoy.filters.http.rbac
+                            path:
+                            - key: istio_dry_run_deny_shadow_effective_policy_id
+                        tag: istio.authorization.dry_run.deny_policy.name
+                      - metadata:
+                          kind:
+                            request: {}
+                          metadataKey:
+                            key: envoy.filters.http.rbac
+                            path:
+                            - key: istio_dry_run_deny_shadow_engine_result
+                        tag: istio.authorization.dry_run.deny_policy.result
+                      - literal:
+                          value: latest
+                        tag: istio.canonical_revision
+                      - literal:
+                          value: waypoint
+                        tag: istio.canonical_service
+                      - literal:
+                          value: Kubernetes
+                        tag: istio.cluster_id
+                      - literal:
+                          value: cluster.local
+                        tag: istio.mesh_id
+                      - literal:
+                          value: legacy
+                        tag: istio.namespace
+                      overallSampling:
+                        value: 100
+                      randomSampling:
+                        value: 1
+                    upgradeConfigs:
+                    - upgradeType: websocket
+                    useRemoteAddress: false
+
+                    route_config:
+                      name: inbound-vip|9080|http|baseline.default.svc.cluster.local
+                      virtual_hosts:
+                        - name: inbound|http|9080
+                          domains:
+                            - '*'
+                          routes:
+                            - match:
+                                prefix: /
+                              route:
+                                cluster: inbound-vip|9080|http|baseline.default.svc.cluster.local
+                              decorator:
+                                operation: :9080/*
+                              name: default
+      clusters:
+        - name: inbound-vip|9080|http|baseline.default.svc.cluster.local
+          type: STRICT_DNS
+          load_assignment:
+            cluster_name: inbound-vip|9080|http|baseline.default.svc.cluster.local
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: hyper-headless.default.svc
+                          port_value: 8080
+kind: ConfigMap
+metadata:
+  name: static-waypoint-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hyper-headless
+  namespace: default
+spec:
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8080
+  selector:
+    app: httpbin
+  type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: simple-waypoint
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+  - allowedRoutes:
+      namespaces:
+        from: Same
+    name: mesh
+    port: 15008
+    protocol: HBONE
