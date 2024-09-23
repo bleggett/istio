@@ -433,14 +433,14 @@ func generateServiceAccountYAML(opt RemoteSecretOptions) (string, error) {
 	}
 	included := []string{}
 	for _, mf := range mfs {
-		if mf.Component != component.BaseComponentName && mf.Component != component.PilotComponentName {
+		if  mf.Component != component.PilotComponentName {
 			continue
 		}
 		for _, m := range mf.Manifests {
 			if m.GetKind() == "ClusterRole" || m.GetKind() == "ClusterRoleBinding" {
 				included = append(included, m.Content)
 			}
-			if m.GetKind() == "ServiceAccount" && m.GetName() == "istio-reader-service-account" {
+			if m.GetKind() == "ServiceAccount" && strings.HasPrefix(m.GetName(), "istio-reader-service-account") {
 				included = append(included, m.Content)
 			}
 		}

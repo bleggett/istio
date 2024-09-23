@@ -327,7 +327,7 @@ copy-templates:
 	find ./manifests/charts/gateways/istio-egress/templates -type f -exec sed -i -e 's/Ingress/Egress/g' {} \;
 
 	# external istiod remote cluster charts
-	cp manifests/charts/base/templates/reader-serviceaccount.yaml manifests/charts/istiod-remote/templates
+	cp manifests/charts/istio-control/istio-discovery/templates/reader-serviceaccount.yaml manifests/charts/istiod-remote/templates
 	cp manifests/charts/istio-control/istio-discovery/templates/remote-istiod-service.yaml manifests/charts/istiod-remote/templates
 	cp manifests/charts/istio-control/istio-discovery/templates/remote-istiod-endpoints.yaml manifests/charts/istiod-remote/templates
 	cp manifests/charts/istio-control/istio-discovery/templates/mutatingwebhook.yaml manifests/charts/istiod-remote/templates
