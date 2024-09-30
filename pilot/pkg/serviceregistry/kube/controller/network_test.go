@@ -363,11 +363,9 @@ func TestAmbientSync(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "remote-beta",
 			Namespace: "default",
-			Annotations: map[string]string{
-				"gateway.istio.io/service-account": "eastwest-istio-eastwest",
-			},
 			Labels: map[string]string{
 				"topology.istio.io/network": "beta",
+				constants.GatewaySAOverrideLabel: "eastwest-istio-eastwest",
 			},
 		},
 		Spec: v1beta1.GatewaySpec{

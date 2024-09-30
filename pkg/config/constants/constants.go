@@ -165,6 +165,10 @@ const (
 
 	// GatewayNameLabel indicates the gateway managing a particular proxy instances. Only populated for Gateway API gateways
 	GatewayNameLabel = "gateway.networking.k8s.io/gateway-name"
+	// TODO BML
+	GatewayNameOverrideLabel     = "gateway.istio.io/name-override"
+	// TODO BML
+	GatewaySAOverrideLabel       = "gateway.istio.io/service-account"
 
 	// TODO formalize this API
 	// TODO additional values to represent passthrough and hbone or both

@@ -1397,8 +1397,8 @@ func TestExtractGatewayServices(t *testing.T) {
 				Meta: config.Meta{
 					Name:      "foo",
 					Namespace: "default",
-					Annotations: map[string]string{
-						gatewayNameOverride: "bar",
+					Labels: map[string]string{
+						constants.GatewayNameOverrideLabel: "bar",
 					},
 				},
 			},

@@ -224,5 +224,5 @@ func hasListenerMode(l v1beta1.Listener, mode string) bool {
 }
 
 func GatewaySA(gw *v1beta1.Gateway) string {
-	return model.GetOrDefault(gw.GetAnnotations()["gateway.istio.io/service-account"], fmt.Sprintf("%s-%s", gw.Name, gw.Spec.GatewayClassName))
+	return model.GetOrDefault(gw.GetLabels()[constants.GatewaySAOverrideLabel], fmt.Sprintf("%s-%s", gw.Name, gw.Spec.GatewayClassName))
 }

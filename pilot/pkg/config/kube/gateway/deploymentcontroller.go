@@ -352,8 +352,8 @@ func (d *DeploymentController) configureIstioGateway(log *istiolog.Scope, gw gat
 
 	input := TemplateInput{
 		Gateway:        &gw,
-		DeploymentName: model.GetOrDefault(gw.Annotations[gatewayNameOverride], defaultName),
-		ServiceAccount: model.GetOrDefault(gw.Annotations[gatewaySAOverride], defaultName),
+		DeploymentName: model.GetOrDefault(gw.Labels[constants.GatewayNameOverrideLabel], defaultName),
+		ServiceAccount: model.GetOrDefault(gw.Labels[constants.GatewaySAOverrideLabel], defaultName),
 		Ports:          extractServicePorts(gw),
 		ClusterID:      d.clusterID.String(),
 
