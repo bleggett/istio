@@ -105,7 +105,7 @@ type RepairConfig struct {
 	// Whether to label broken pods
 	LabelPods bool
 
-	// Wheter to reconcile iptables
+	// Whether to reconcile iptables
 	Reconcile bool
 
 	// Filters for race repair, including name of sidecar annotation, name of init container,
