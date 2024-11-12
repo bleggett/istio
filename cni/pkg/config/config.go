@@ -79,6 +79,9 @@ type InstallConfig struct {
 
 	// Whether ipv6 is enabled for ambient capture
 	AmbientIPv6 bool
+
+	// Whether reconciliation of iptables is enabled for Ambient
+	AmbientReconcile bool
 }
 
 // RepairConfig struct defines the Istio CNI race repair configuration
@@ -101,6 +104,9 @@ type RepairConfig struct {
 
 	// Whether to label broken pods
 	LabelPods bool
+
+	// Wheter to reconcile iptables
+	Reconcile bool
 
 	// Filters for race repair, including name of sidecar annotation, name of init container,
 	// init container termination message and exit code.
@@ -142,6 +148,7 @@ func (c InstallConfig) String() string {
 	b.WriteString("AmbientDNSCapture: " + fmt.Sprint(c.AmbientDNSCapture) + "\n")
 	b.WriteString("AmbientIPv6: " + fmt.Sprint(c.AmbientIPv6) + "\n")
 
+	b.WriteString("AmbientReconcile: " + fmt.Sprint(c.AmbientReconcile) + "\n")
 	return b.String()
 }
 
@@ -159,5 +166,6 @@ func (c RepairConfig) String() string {
 	b.WriteString("InitExitCode: " + fmt.Sprint(c.InitExitCode) + "\n")
 	b.WriteString("LabelSelectors: " + c.LabelSelectors + "\n")
 	b.WriteString("FieldSelectors: " + c.FieldSelectors + "\n")
+	b.WriteString("Reconcile: " + c.FieldSelectors + "\n")
 	return b.String()
 }

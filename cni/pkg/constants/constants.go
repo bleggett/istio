@@ -35,6 +35,7 @@ const (
 	AmbientEnabled       = "ambient-enabled"
 	AmbientDNSCapture    = "ambient-dns-capture"
 	AmbientIPv6          = "ambient-ipv6"
+	AmbientReconcile     = "ambient-reconcile"
 
 	// Repair
 	RepairEnabled            = "repair-enabled"
@@ -50,6 +51,7 @@ const (
 	RepairInitExitCode       = "repair-init-container-exit-code"
 	RepairLabelSelectors     = "repair-label-selectors"
 	RepairFieldSelectors     = "repair-field-selectors"
+	RepairReconcile          = "repair-reconcile"
 )
 
 // Internal constants

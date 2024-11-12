@@ -75,6 +75,7 @@ func ipbuildConfig(c *Config) *iptablesconfig.Config {
 		TraceLogging: c.TraceLogging,
 		EnableIPv6:   c.EnableIPv6,
 		RedirectDNS:  c.RedirectDNS,
+		Reconcile:    c.Reconcile,
 	}
 }
 
@@ -141,6 +142,7 @@ func (cfg *IptablesConfigurator) DeleteInpodRules() error {
 	return errors.Join(inpodErrs...)
 }
 
+// TODO: In the future this could become a iptables run with cleanup_only (if cfg.Reconcile is also True)
 func (cfg *IptablesConfigurator) executeDeleteCommands() error {
 	deleteCmds := [][]string{
 		{"-t", iptablesconstants.MANGLE, "-D", iptablesconstants.PREROUTING, "-j", ChainInpodPrerouting},
@@ -561,6 +563,7 @@ func (cfg *IptablesConfigurator) DeleteHostRules() {
 	cfg.executeHostDeleteCommands()
 }
 
+// TODO: In the future this could become a iptables run with cleanup_only (if cfg.Reconcile is also True)
 func (cfg *IptablesConfigurator) executeHostDeleteCommands() {
 	optionalDeleteCmds := [][]string{
 		// delete our main jump in the host ruleset. If it's not there, NBD.
