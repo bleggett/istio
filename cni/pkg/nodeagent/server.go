@@ -73,6 +73,7 @@ func NewServer(ctx context.Context, ready *atomic.Value, pluginSocket string, ar
 		RedirectDNS: args.DNSCapture,
 		EnableIPv6:  args.EnableIPv6,
 		Reconcile:   args.Reconcile,
+		ForceApply:  args.ForceApply,
 	}
 
 	log.Debug("creating ipsets in the node netns")

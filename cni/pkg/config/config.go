@@ -82,6 +82,9 @@ type InstallConfig struct {
 
 	// Whether reconciliation of iptables is enabled for Ambient
 	AmbientReconcile bool
+
+	// Whether to bypass iptables idempotency handling
+	AmbientForceApply bool
 }
 
 // RepairConfig struct defines the Istio CNI race repair configuration
@@ -149,6 +152,7 @@ func (c InstallConfig) String() string {
 	b.WriteString("AmbientIPv6: " + fmt.Sprint(c.AmbientIPv6) + "\n")
 
 	b.WriteString("AmbientReconcile: " + fmt.Sprint(c.AmbientReconcile) + "\n")
+	b.WriteString("AmbientForceApply: " + fmt.Sprint(c.AmbientForceApply) + "\n")
 	return b.String()
 }
 

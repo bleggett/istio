@@ -76,6 +76,7 @@ func ipbuildConfig(c *Config) *iptablesconfig.Config {
 		EnableIPv6:   c.EnableIPv6,
 		RedirectDNS:  c.RedirectDNS,
 		Reconcile:    c.Reconcile,
+		ForceApply:   c.ForceApply,
 	}
 }
 

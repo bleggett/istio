@@ -51,4 +51,5 @@ type AmbientArgs struct {
 	DNSCapture      bool
 	EnableIPv6      bool
 	Reconcile       bool
+	ForceApply      bool
 }
