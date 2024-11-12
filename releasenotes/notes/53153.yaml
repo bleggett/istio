@@ -1,0 +1,10 @@
+apiVersion: release-notes/v2
+kind: feature
+area: traffic-management
+releaseNotes:
+- |
+  **Added** `--cleanup-only` flag to CNI istio-iptables to perform a cleanup of chains/rules without creating new ones.
+- |
+  **Added** `--reconcile` flag to CNI istio-iptables to reconcile iptables if existing chains/rules are found and a drift with the desired state is detected.
+- |
+  **Added** `--force-apply` flag to CNI istio-iptables to override the idempotency logic if detection incorrectly assumes rules are already applied.
