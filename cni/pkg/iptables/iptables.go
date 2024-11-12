@@ -557,35 +557,20 @@ func (cfg *IptablesConfigurator) CreateHostRulesForHealthChecks(hostSNATIP, host
 	return nil
 }
 
-func (cfg *IptablesConfigurator) DeleteHostRules() {
+func (cfg *IptablesConfigurator) DeleteHostRules(hostSNATIP, hostSNATIPV6 netip.Addr) {
 	log.Debug("Attempting to delete hostside iptables rules (if they exist)")
-
-	cfg.executeHostDeleteCommands()
-}
-
-// TODO: In the future this could become a iptables run with cleanup_only (if cfg.Reconcile is also True)
-func (cfg *IptablesConfigurator) executeHostDeleteCommands() {
-	optionalDeleteCmds := [][]string{
-		// delete our main jump in the host ruleset. If it's not there, NBD.
-		{"-t", iptablesconstants.NAT, "-D", iptablesconstants.POSTROUTING, "-j", ChainHostPostrouting},
-		// flush-then-delete our created chains
-		// these sometimes fail due to "Device or resource busy" - again NBD.
-		{"-t", iptablesconstants.NAT, "-F", ChainHostPostrouting},
-		{"-t", iptablesconstants.NAT, "-X", ChainHostPostrouting},
+	builder := cfg.appendHostRules(&hostSNATIP, &hostSNATIPV6)
+	runCommands := func(cmds [][]string, version *dep.IptablesVersion) {
+		for _, cmd := range cmds {
+			// Ignore errors, as it is expected to fail in cases where the node is already cleaned up.
+			cfg.ext.RunQuietlyAndIgnore(iptablesconstants.IPTables, version, nil, cmd...)
+		}
 	}
 
-	// iptablei seems like a reasonable pluralization of iptables
-	iptablesVariant := []dep.IptablesVersion{}
-	iptablesVariant = append(iptablesVariant, cfg.iptV)
+	runCommands(builder.BuildCleanupV4(), &cfg.iptV)
 
 	if cfg.cfg.EnableIPv6 {
-		iptablesVariant = append(iptablesVariant, cfg.ipt6V)
-	}
-	for _, iptVer := range iptablesVariant {
-		for _, cmd := range optionalDeleteCmds {
-			// Ignore errors, as it is expected to fail in cases where the node is already cleaned up.
-			cfg.ext.RunQuietlyAndIgnore(iptablesconstants.IPTables, &iptVer, nil, cmd...)
-		}
+		runCommands(builder.BuildCleanupV6(), &cfg.ipt6V)
 	}
 }
 

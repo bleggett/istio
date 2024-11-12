@@ -94,7 +94,7 @@ func NewServer(ctx context.Context, ready *atomic.Value, pluginSocket string, ar
 
 	// Create hostprobe rules now, in the host netns
 	if !args.Reconcile {
-		hostIptables.DeleteHostRules()
+		hostIptables.DeleteHostRules(HostProbeSNATIP, HostProbeSNATIPV6)
 	}
 
 	if err := hostIptables.CreateHostRulesForHealthChecks(&HostProbeSNATIP, &HostProbeSNATIPV6); err != nil {
@@ -206,7 +206,7 @@ func (s *meshDataplane) Stop() {
 	log.Info("CNI ambient server terminating, cleaning up node net rules")
 
 	log.Debug("removing host iptables rules")
-	s.hostIptables.DeleteHostRules()
+	s.hostIptables.DeleteHostRules(HostProbeSNATIP, HostProbeSNATIPV6)
 
 	log.Debug("destroying host ipset")
 	s.hostsideProbeIPSet.Flush()
