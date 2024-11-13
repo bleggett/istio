@@ -99,13 +99,13 @@ var rootCmd = &cobra.Command{
 			log.Infof("Starting ambient node agent with inpod redirect mode on socket %s", cniEventAddr)
 			ambientAgent, err := nodeagent.NewServer(ctx, watchServerReady, cniEventAddr,
 				nodeagent.AmbientArgs{
-					SystemNamespace: nodeagent.SystemNamespace,
-					Revision:        nodeagent.Revision,
-					ServerSocket:    cfg.InstallConfig.ZtunnelUDSAddress,
-					DNSCapture:      cfg.InstallConfig.AmbientDNSCapture,
-					EnableIPv6:      cfg.InstallConfig.AmbientIPv6,
-					Reconcile:       cfg.InstallConfig.AmbientReconcile,
-					ForceApply:      cfg.InstallConfig.AmbientForceApply,
+					SystemNamespace:            nodeagent.SystemNamespace,
+					Revision:                   nodeagent.Revision,
+					ServerSocket:               cfg.InstallConfig.ZtunnelUDSAddress,
+					DNSCapture:                 cfg.InstallConfig.AmbientDNSCapture,
+					EnableIPv6:                 cfg.InstallConfig.AmbientIPv6,
+					ReconcilePodRulesOnStartup: cfg.InstallConfig.AmbientReconcilePodRulesOnStartup,
+					ForceApply:                 cfg.InstallConfig.AmbientForceApply,
 				})
 			if err != nil {
 				return fmt.Errorf("failed to create ambient nodeagent service: %v", err)
@@ -265,10 +265,10 @@ func constructConfig() (*config.Config, error) {
 		ExcludeNamespaces: viper.GetString(constants.ExcludeNamespaces),
 		ZtunnelUDSAddress: viper.GetString(constants.ZtunnelUDSAddress),
 
-		AmbientEnabled:    viper.GetBool(constants.AmbientEnabled),
-		AmbientDNSCapture: viper.GetBool(constants.AmbientDNSCapture),
-		AmbientIPv6:       viper.GetBool(constants.AmbientIPv6),
-		AmbientReconcile:  viper.GetBool(constants.AmbientReconcile),
+		AmbientEnabled:                    viper.GetBool(constants.AmbientEnabled),
+		AmbientDNSCapture:                 viper.GetBool(constants.AmbientDNSCapture),
+		AmbientIPv6:                       viper.GetBool(constants.AmbientIPv6),
+		AmbientReconcilePodRulesOnStartup: viper.GetBool(constants.AmbientReconcilePodRulesOnStartup),
 	}
 
 	if len(installCfg.K8sNodeName) == 0 {
@@ -293,7 +293,6 @@ func constructConfig() (*config.Config, error) {
 		InitExitCode:       viper.GetInt(constants.RepairInitExitCode),
 		LabelSelectors:     viper.GetString(constants.RepairLabelSelectors),
 		FieldSelectors:     viper.GetString(constants.RepairFieldSelectors),
-		Reconcile:          viper.GetBool(constants.RepairReconcile),
 	}
 
 	return &config.Config{InstallConfig: installCfg, RepairConfig: repairCfg}, nil

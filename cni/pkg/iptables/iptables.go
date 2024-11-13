@@ -81,19 +81,23 @@ func ipbuildConfig(c *Config) *iptablesconfig.Config {
 }
 
 func NewIptablesConfigurator(
-	cfg *Config,
+	hostCfg *Config,
+	podCfg *Config,
 	hostDeps dep.Dependencies,
 	podDeps dep.Dependencies,
 	nlDeps NetlinkDependencies,
 ) (*IptablesConfigurator, *IptablesConfigurator, error) {
-	if cfg == nil {
-		cfg = &Config{}
+	if hostCfg == nil {
+		hostCfg = &Config{}
+	}
+	if podCfg == nil {
+		podCfg = &Config{}
 	}
 
 	configurator := &IptablesConfigurator{
 		ext:    hostDeps,
 		nlDeps: nlDeps,
-		cfg:    cfg,
+		cfg:    hostCfg,
 	}
 
 	// By detecting iptables versions *here* once-for-all we are
@@ -131,6 +135,7 @@ func NewIptablesConfigurator(
 	// Setup another configurator with inpod configuration. Basically this will just change how locking is done.
 	inPodConfigurator := ptr.Of(*configurator)
 	inPodConfigurator.ext = podDeps
+	inPodConfigurator.cfg = podCfg
 	return configurator, inPodConfigurator, nil
 }
 

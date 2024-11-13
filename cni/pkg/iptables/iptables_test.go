@@ -54,7 +54,7 @@ func TestIptables(t *testing.T) {
 				cfg.EnableIPv6 = ipv6
 				tt.config(cfg)
 				ext := &dep.DependenciesStub{}
-				iptConfigurator, _, _ := NewIptablesConfigurator(cfg, ext, ext, EmptyNlDeps())
+				iptConfigurator, _, _ := NewIptablesConfigurator(cfg, cfg, ext, ext, EmptyNlDeps())
 				err := iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, tt.ingressMode)
 				if err != nil {
 					t.Fatal(err)
@@ -87,7 +87,7 @@ func TestIptablesHostRules(t *testing.T) {
 				cfg.EnableIPv6 = ipv6
 				tt.config(cfg)
 				ext := &dep.DependenciesStub{}
-				iptConfigurator, _, _ := NewIptablesConfigurator(cfg, ext, ext, EmptyNlDeps())
+				iptConfigurator, _, _ := NewIptablesConfigurator(cfg, cfg, ext, ext, EmptyNlDeps())
 				err := iptConfigurator.CreateHostRulesForHealthChecks(&probeSNATipv4, &probeSNATipv6)
 				if err != nil {
 					t.Fatal(err)
@@ -116,7 +116,7 @@ func TestInvokedTwiceIsIdempotent(t *testing.T) {
 	cfg := constructTestConfig()
 	tt.config(cfg)
 	ext := &dep.DependenciesStub{}
-	iptConfigurator, _, _ := NewIptablesConfigurator(cfg, ext, ext, EmptyNlDeps())
+	iptConfigurator, _, _ := NewIptablesConfigurator(cfg, cfg, ext, ext, EmptyNlDeps())
 	err := iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false)
 	if err != nil {
 		t.Fatal(err)

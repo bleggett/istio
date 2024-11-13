@@ -53,7 +53,7 @@ func TestIptablesCleanRoundTrip(t *testing.T) {
 	tt.config(cfg)
 
 	deps := &dep.RealDependencies{}
-	iptConfigurator, _, _ := NewIptablesConfigurator(cfg, deps, deps, EmptyNlDeps())
+	iptConfigurator, _, _ := NewIptablesConfigurator(cfg, cfg, deps, deps, EmptyNlDeps())
 	assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
 
 	t.Log("starting cleanup")
