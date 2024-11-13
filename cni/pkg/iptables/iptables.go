@@ -201,7 +201,7 @@ func (cfg *IptablesConfigurator) executeDeleteCommands() error {
 // NOTE that this expects to be run from within the pod network namespace!
 func (cfg *IptablesConfigurator) CreateInpodRules(log *istiolog.Scope, hostProbeSNAT, hostProbeV6SNAT netip.Addr, ingressMode bool) error {
 	// Append our rules here
-	builder := cfg.appendInpodRules(hostProbeSNAT, hostProbeV6SNAT, ingressMode)
+	builder := cfg.AppendInpodRules(hostProbeSNAT, hostProbeV6SNAT, ingressMode)
 
 	if err := cfg.addLoopbackRoute(); err != nil {
 		return err
@@ -220,7 +220,7 @@ func (cfg *IptablesConfigurator) CreateInpodRules(log *istiolog.Scope, hostProbe
 	return nil
 }
 
-func (cfg *IptablesConfigurator) appendInpodRules(hostProbeSNAT, hostProbeV6SNAT netip.Addr, ingressMode bool) *builder.IptablesRuleBuilder {
+func (cfg *IptablesConfigurator) AppendInpodRules(hostProbeSNAT, hostProbeV6SNAT netip.Addr, ingressMode bool) *builder.IptablesRuleBuilder {
 	redirectDNS := cfg.cfg.RedirectDNS
 
 	inpodMark := fmt.Sprintf("0x%x", InpodMark) + "/" + fmt.Sprintf("0x%x", InpodMask)
@@ -552,7 +552,7 @@ func (cfg *IptablesConfigurator) delInpodMarkIPRule() error {
 // - kube-proxy (fowarded/proxied traffic from LoadBalancer-backed services, potentially with public IPs, which we must capture)
 func (cfg *IptablesConfigurator) CreateHostRulesForHealthChecks(hostSNATIP, hostSNATIPV6 *netip.Addr) error {
 	// Append our rules here
-	builder := cfg.appendHostRules(hostSNATIP, hostSNATIPV6)
+	builder := cfg.AppendHostRules(hostSNATIP, hostSNATIPV6)
 
 	log.Info("Adding host netnamespace iptables rules")
 
@@ -565,7 +565,7 @@ func (cfg *IptablesConfigurator) CreateHostRulesForHealthChecks(hostSNATIP, host
 
 func (cfg *IptablesConfigurator) DeleteHostRules(hostSNATIP, hostSNATIPV6 netip.Addr) {
 	log.Debug("Attempting to delete hostside iptables rules (if they exist)")
-	builder := cfg.appendHostRules(&hostSNATIP, &hostSNATIPV6)
+	builder := cfg.AppendHostRules(&hostSNATIP, &hostSNATIPV6)
 	runCommands := func(cmds [][]string, version *dep.IptablesVersion) {
 		for _, cmd := range cmds {
 			// Ignore errors, as it is expected to fail in cases where the node is already cleaned up.
@@ -580,7 +580,7 @@ func (cfg *IptablesConfigurator) DeleteHostRules(hostSNATIP, hostSNATIPV6 netip.
 	}
 }
 
-func (cfg *IptablesConfigurator) appendHostRules(hostSNATIP, hostSNATIPV6 *netip.Addr) *builder.IptablesRuleBuilder {
+func (cfg *IptablesConfigurator) AppendHostRules(hostSNATIP, hostSNATIPV6 *netip.Addr) *builder.IptablesRuleBuilder {
 	log.Info("configuring host-level iptables rules (healthchecks, etc)")
 
 	iptablesBuilder := builder.NewIptablesRuleBuilder(ipbuildConfig(cfg.cfg))

@@ -19,60 +19,201 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 
 	// Create a new mount namespace.
 	"github.com/howardjohn/unshare-go/mountns"
+
 	// Create a new network namespace. This will have the 'lo' interface ready but nothing else.
 	_ "github.com/howardjohn/unshare-go/netns"
 	"github.com/howardjohn/unshare-go/userns"
 
+	"istio.io/istio/cni/pkg/ipset"
 	"istio.io/istio/cni/pkg/scopes"
+	istiolog "istio.io/istio/pkg/log"
 	"istio.io/istio/pkg/test/util/assert"
+	iptablescapture "istio.io/istio/tools/istio-iptables/pkg/capture"
 	dep "istio.io/istio/tools/istio-iptables/pkg/dependencies"
 )
 
-func TestIptablesCleanRoundTrip(t *testing.T) {
+func createHostsideProbeIpset(isV6 bool) (ipset.IPSet, error) {
+	linDeps := ipset.RealNlDeps()
+	probeSet, err := ipset.NewIPSet(ProbeIPSet, isV6, linDeps)
+	if err != nil {
+		return probeSet, err
+	}
+	probeSet.Flush()
+	return probeSet, nil
+}
+
+func TestIdempotentEquivalentInPodRerun(t *testing.T) {
 	setup(t)
-	tt := struct {
-		name   string
-		config func(cfg *Config)
+
+	tests := []struct {
+		name        string
+		config      func(cfg *Config)
+		ingressMode bool
 	}{
-		"default",
-		func(cfg *Config) {
-			cfg.RedirectDNS = true
+		{
+			name: "default",
+			config: func(cfg *Config) {
+				cfg.RedirectDNS = true
+			},
+			ingressMode: false,
+		},
+		{
+			name: "tproxy",
+			config: func(cfg *Config) {
+				cfg.TPROXYRedirection = true
+				cfg.RedirectDNS = true
+			},
+			ingressMode: false,
+		},
+		{
+			name: "ingress",
+			config: func(cfg *Config) {
+			},
+			ingressMode: true,
 		},
 	}
 
 	probeSNATipv4 := netip.MustParseAddr("169.254.7.127")
 	probeSNATipv6 := netip.MustParseAddr("e9ac:1e77:90ca:399f:4d6d:ece2:2f9b:3164")
+	ext := &dep.RealDependencies{
+		HostFilesystemPodNetwork: false,
+		NetworkNamespace:         "",
+	}
+	iptVer, err := ext.DetectIptablesVersion(false)
+	if err != nil {
+		t.Fatalf("Can't detect iptables version: %v", err)
+	}
 
-	cfg := &Config{}
-	tt.config(cfg)
+	ipt6Ver, err := ext.DetectIptablesVersion(true)
+	if err != nil {
+		t.Fatalf("Can't detect ip6tables version")
+	}
+	scope := istiolog.FindScope(istiolog.DefaultScopeName)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{}
+			tt.config(cfg)
 
-	deps := &dep.RealDependencies{}
-	iptConfigurator, _, _ := NewIptablesConfigurator(cfg, cfg, deps, deps, EmptyNlDeps())
-	assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
+			deps := &dep.RealDependencies{}
+			iptConfigurator, _, err := NewIptablesConfigurator(cfg, cfg, deps, deps, EmptyNlDeps())
+			builder := iptConfigurator.AppendInpodRules(probeSNATipv4, probeSNATipv6, tt.ingressMode)
+			if err != nil {
+				t.Fatalf("failed to setup iptables configurator: %v", err)
+			}
+			defer func() {
+				assert.NoError(t, iptConfigurator.DeleteInpodRules())
+				residueExists, deltaExists := iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+				assert.Equal(t, residueExists, false)
+				assert.Equal(t, deltaExists, true)
+			}()
+			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, tt.ingressMode))
+			residueExists, deltaExists := iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, true)
+			assert.Equal(t, deltaExists, false)
 
-	t.Log("starting cleanup")
-	// Cleanup, should work
-	assert.NoError(t, iptConfigurator.DeleteInpodRules())
-	validateIptablesClean(t)
+			t.Log("Starting cleanup")
+			// Cleanup, should work
+			assert.NoError(t, iptConfigurator.DeleteInpodRules())
+			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, false)
+			assert.Equal(t, deltaExists, true)
 
-	t.Log("second run")
-	// Add again, should still work
-	assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
+			t.Log("Second run")
+			// Add again, should still work
+			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
+			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, true)
+			assert.Equal(t, deltaExists, false)
+
+			t.Log("Third run")
+			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
+		})
+	}
 }
 
-func validateIptablesClean(t *testing.T) {
-	cur := iptablesSave(t)
-	if strings.Contains(cur, "ISTIO") {
-		t.Fatalf("Istio rules leftover: %v", cur)
+func TestIptablesHostCleanRoundTrip(t *testing.T) {
+	setup(t)
+
+	tests := []struct {
+		name   string
+		config func(cfg *Config)
+	}{
+		{
+			name: "default",
+			config: func(cfg *Config) {
+				cfg.RedirectDNS = true
+			},
+		},
 	}
-	if strings.Contains(cur, "-A") {
-		t.Fatalf("Rules: %v", cur)
+
+	probeSNATipv4 := netip.MustParseAddr("169.254.7.127")
+	probeSNATipv6 := netip.MustParseAddr("e9ac:1e77:90ca:399f:4d6d:ece2:2f9b:3164")
+	ext := &dep.RealDependencies{
+		HostFilesystemPodNetwork: false,
+		NetworkNamespace:         "",
+	}
+	iptVer, err := ext.DetectIptablesVersion(false)
+	if err != nil {
+		t.Fatalf("Can't detect iptables version: %v", err)
+	}
+
+	ipt6Ver, err := ext.DetectIptablesVersion(true)
+	if err != nil {
+		t.Fatalf("Can't detect ip6tables version")
+	}
+	scope := istiolog.FindScope(istiolog.DefaultScopeName)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{}
+			tt.config(cfg)
+
+			deps := &dep.RealDependencies{}
+			set, err := createHostsideProbeIpset(true)
+			if err != nil {
+				t.Fatalf("failed to create hostside probe ipset: %v", err)
+			}
+			defer func() {
+				assert.NoError(t, set.DestroySet())
+			}()
+
+			iptConfigurator, _, err := NewIptablesConfigurator(cfg, cfg, deps, deps, RealNlDeps())
+			builder := iptConfigurator.AppendHostRules(&probeSNATipv4, &probeSNATipv6)
+			if err != nil {
+				t.Fatalf("failed to setup iptables configurator: %v", err)
+			}
+			defer func() {
+				iptConfigurator.DeleteHostRules(probeSNATipv4, probeSNATipv6)
+				residueExists, deltaExists := iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+				assert.Equal(t, residueExists, false)
+				assert.Equal(t, deltaExists, true)
+			}()
+
+			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(&probeSNATipv4, &probeSNATipv6))
+			residueExists, deltaExists := iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, true)
+			assert.Equal(t, deltaExists, false)
+
+			// Round-trip deletion and recreation to test clean-up and re-setup
+			t.Log("Starting cleanup")
+			iptConfigurator.DeleteHostRules(probeSNATipv4, probeSNATipv6)
+			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, false)
+			assert.Equal(t, deltaExists, true)
+
+			t.Log("Second run")
+			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(&probeSNATipv4, &probeSNATipv6))
+			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, true)
+			assert.Equal(t, deltaExists, false)
+
+			t.Log("Third run")
+			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(&probeSNATipv4, &probeSNATipv6))
+		})
 	}
 }
 
