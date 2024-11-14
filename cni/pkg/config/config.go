@@ -80,11 +80,8 @@ type InstallConfig struct {
 	// Whether ipv6 is enabled for ambient capture
 	AmbientIPv6 bool
 
-	// Whether reconciliation of iptables is enabled for Ambient
+	// Whether reconciliation of iptables at post startup is enabled for Ambient workloads
 	AmbientReconcilePodRulesOnStartup bool
-
-	// Whether to bypass iptables idempotency handling
-	AmbientForceApply bool
 }
 
 // RepairConfig struct defines the Istio CNI race repair configuration
@@ -152,7 +149,6 @@ func (c InstallConfig) String() string {
 	b.WriteString("AmbientIPv6: " + fmt.Sprint(c.AmbientIPv6) + "\n")
 
 	b.WriteString("AmbientReconcilePodRulesOnStartup: " + fmt.Sprint(c.AmbientReconcilePodRulesOnStartup) + "\n")
-	b.WriteString("AmbientForceApply: " + fmt.Sprint(c.AmbientForceApply) + "\n")
 	return b.String()
 }
 

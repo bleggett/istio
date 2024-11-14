@@ -72,14 +72,12 @@ func NewServer(ctx context.Context, ready *atomic.Value, pluginSocket string, ar
 	hostCfg := &iptables.Config{
 		RedirectDNS: args.DNSCapture,
 		EnableIPv6:  args.EnableIPv6,
-		ForceApply:  args.ForceApply,
 	}
 
 	podCfg := &iptables.Config{
 		RedirectDNS: args.DNSCapture,
 		EnableIPv6:  args.EnableIPv6,
 		Reconcile:   args.ReconcilePodRulesOnStartup,
-		ForceApply:  args.ForceApply && !args.ReconcilePodRulesOnStartup, // ReconcilePodRulesOnStartup is not compatible with ForceApply
 	}
 
 	log.Debug("creating ipsets in the node netns")

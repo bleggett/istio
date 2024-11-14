@@ -36,7 +36,6 @@ const (
 	AmbientDNSCapture                 = "ambient-dns-capture"
 	AmbientIPv6                       = "ambient-ipv6"
 	AmbientReconcilePodRulesOnStartup = "ambient-reconcile-pod-rules-on-startup"
-	AmbientForceApply                 = "ambient-force-apply"
 
 	// Repair
 	RepairEnabled            = "repair-enabled"
