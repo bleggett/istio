@@ -24,7 +24,6 @@ import (
 
 	// Create a new mount namespace.
 	"github.com/howardjohn/unshare-go/mountns"
-
 	// Create a new network namespace. This will have the 'lo' interface ready but nothing else.
 	_ "github.com/howardjohn/unshare-go/netns"
 	"github.com/howardjohn/unshare-go/userns"
@@ -50,33 +49,7 @@ func createHostsideProbeIpset(isV6 bool) (ipset.IPSet, error) {
 func TestIdempotentEquivalentInPodRerun(t *testing.T) {
 	setup(t)
 
-	tests := []struct {
-		name        string
-		config      func(cfg *Config)
-		ingressMode bool
-	}{
-		{
-			name: "default",
-			config: func(cfg *Config) {
-				cfg.RedirectDNS = true
-			},
-			ingressMode: false,
-		},
-		{
-			name: "tproxy",
-			config: func(cfg *Config) {
-				cfg.TPROXYRedirection = true
-				cfg.RedirectDNS = true
-			},
-			ingressMode: false,
-		},
-		{
-			name: "ingress",
-			config: func(cfg *Config) {
-			},
-			ingressMode: true,
-		},
-	}
+	tests := GetCommonInPodTestCases()
 
 	probeSNATipv4 := netip.MustParseAddr("169.254.7.127")
 	probeSNATipv6 := netip.MustParseAddr("e9ac:1e77:90ca:399f:4d6d:ece2:2f9b:3164")
@@ -139,17 +112,7 @@ func TestIdempotentEquivalentInPodRerun(t *testing.T) {
 func TestIptablesHostCleanRoundTrip(t *testing.T) {
 	setup(t)
 
-	tests := []struct {
-		name   string
-		config func(cfg *Config)
-	}{
-		{
-			name: "default",
-			config: func(cfg *Config) {
-				cfg.RedirectDNS = true
-			},
-		},
-	}
+	tests := GetCommonHostTestCases()
 
 	probeSNATipv4 := netip.MustParseAddr("169.254.7.127")
 	probeSNATipv6 := netip.MustParseAddr("e9ac:1e77:90ca:399f:4d6d:ece2:2f9b:3164")
@@ -232,10 +195,4 @@ func setup(t *testing.T) {
 		_ = os.Mkdir("/run", 0o777)
 		_ = mountns.BindMount(xtables, "/run/xtables.lock")
 	})
-}
-
-func iptablesSave(t *testing.T) string {
-	res, err := exec.Command("iptables-save").CombinedOutput()
-	assert.NoError(t, err)
-	return string(res)
 }
