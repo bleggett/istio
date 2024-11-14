@@ -99,13 +99,13 @@ func TestIdempotentEquivalentInPodRerun(t *testing.T) {
 
 			t.Log("Second run")
 			// Apply should work again
-			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
+			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, tt.ingressMode))
 			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
 			assert.Equal(t, residueExists, true)
 			assert.Equal(t, deltaExists, false)
 
 			t.Log("Third run")
-			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
+			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, tt.ingressMode))
 		})
 	}
 }
@@ -165,6 +165,7 @@ func TestIdempotentUnequalInPodRerun(t *testing.T) {
 			assert.Equal(t, residueExists, true)
 			assert.Equal(t, deltaExists, false)
 
+			// Diverge by creating new ISTIO chains
 			cmd := exec.Command("iptables", "-t", "nat", "-N", "ISTIO_TEST")
 			cmd.Stdout = &stdout
 			cmd.Stderr = &stderr
