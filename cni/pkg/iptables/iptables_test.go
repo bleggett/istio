@@ -62,7 +62,7 @@ func TestIptablesHostRules(t *testing.T) {
 				tt.config(cfg)
 				ext := &dep.DependenciesStub{}
 				iptConfigurator, _, _ := NewIptablesConfigurator(cfg, cfg, ext, ext, EmptyNlDeps())
-				err := iptConfigurator.CreateHostRulesForHealthChecks(&probeSNATipv4, &probeSNATipv6)
+				err := iptConfigurator.CreateHostRulesForHealthChecks(probeSNATipv4, probeSNATipv6)
 				if err != nil {
 					t.Fatal(err)
 				}

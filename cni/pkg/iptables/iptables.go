@@ -552,7 +552,7 @@ func (cfg *IptablesConfigurator) delInpodMarkIPRule() error {
 // via the nodeIP
 // - kubelet (node-local healthchecks, which we do not capture)
 // - kube-proxy (fowarded/proxied traffic from LoadBalancer-backed services, potentially with public IPs, which we must capture)
-func (cfg *IptablesConfigurator) CreateHostRulesForHealthChecks(hostSNATIP, hostSNATIPV6 *netip.Addr) error {
+func (cfg *IptablesConfigurator) CreateHostRulesForHealthChecks(hostSNATIP, hostSNATIPV6 netip.Addr) error {
 	// Append our rules here
 	builder := cfg.AppendHostRules(hostSNATIP, hostSNATIPV6)
 
@@ -567,7 +567,7 @@ func (cfg *IptablesConfigurator) CreateHostRulesForHealthChecks(hostSNATIP, host
 
 func (cfg *IptablesConfigurator) DeleteHostRules(hostSNATIP, hostSNATIPV6 netip.Addr) {
 	log.Debug("Attempting to delete hostside iptables rules (if they exist)")
-	builder := cfg.AppendHostRules(&hostSNATIP, &hostSNATIPV6)
+	builder := cfg.AppendHostRules(hostSNATIP, hostSNATIPV6)
 	runCommands := func(cmds [][]string, version *dep.IptablesVersion) {
 		for _, cmd := range cmds {
 			// Ignore errors, as it is expected to fail in cases where the node is already cleaned up.
@@ -582,7 +582,7 @@ func (cfg *IptablesConfigurator) DeleteHostRules(hostSNATIP, hostSNATIPV6 netip.
 	}
 }
 
-func (cfg *IptablesConfigurator) AppendHostRules(hostSNATIP, hostSNATIPV6 *netip.Addr) *builder.IptablesRuleBuilder {
+func (cfg *IptablesConfigurator) AppendHostRules(hostSNATIP, hostSNATIPV6 netip.Addr) *builder.IptablesRuleBuilder {
 	log.Info("configuring host-level iptables rules (healthchecks, etc)")
 
 	iptablesBuilder := builder.NewIptablesRuleBuilder(ipbuildConfig(cfg.cfg))

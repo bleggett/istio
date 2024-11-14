@@ -259,7 +259,7 @@ func TestIptablesHostCleanRoundTrip(t *testing.T) {
 			}()
 
 			iptConfigurator, _, err := NewIptablesConfigurator(cfg, cfg, deps, deps, RealNlDeps())
-			builder := iptConfigurator.AppendHostRules(&probeSNATipv4, &probeSNATipv6)
+			builder := iptConfigurator.AppendHostRules(probeSNATipv4, probeSNATipv6)
 			if err != nil {
 				t.Fatalf("failed to setup iptables configurator: %v", err)
 			}
@@ -270,7 +270,7 @@ func TestIptablesHostCleanRoundTrip(t *testing.T) {
 				assert.Equal(t, deltaExists, true)
 			}()
 
-			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(&probeSNATipv4, &probeSNATipv6))
+			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(probeSNATipv4, probeSNATipv6))
 			residueExists, deltaExists := iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
 			assert.Equal(t, residueExists, true)
 			assert.Equal(t, deltaExists, false)
@@ -283,13 +283,13 @@ func TestIptablesHostCleanRoundTrip(t *testing.T) {
 			assert.Equal(t, deltaExists, true)
 
 			t.Log("Second run")
-			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(&probeSNATipv4, &probeSNATipv6))
+			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(probeSNATipv4, probeSNATipv6))
 			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
 			assert.Equal(t, residueExists, true)
 			assert.Equal(t, deltaExists, false)
 
 			t.Log("Third run")
-			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(&probeSNATipv4, &probeSNATipv6))
+			assert.NoError(t, iptConfigurator.CreateHostRulesForHealthChecks(probeSNATipv4, probeSNATipv6))
 		})
 	}
 }
