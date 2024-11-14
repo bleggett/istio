@@ -15,6 +15,7 @@
 package iptables
 
 import (
+	"bytes"
 	"net/netip"
 	"os"
 	"os/exec"
@@ -97,7 +98,7 @@ func TestIdempotentEquivalentInPodRerun(t *testing.T) {
 			assert.Equal(t, deltaExists, true)
 
 			t.Log("Second run")
-			// Add again, should still work
+			// Apply should work again
 			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
 			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
 			assert.Equal(t, residueExists, true)
@@ -105,6 +106,118 @@ func TestIdempotentEquivalentInPodRerun(t *testing.T) {
 
 			t.Log("Third run")
 			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, false))
+		})
+	}
+}
+
+func TestIdempotentUnequalInPodRerun(t *testing.T) {
+	setup(t)
+
+	tests := GetCommonInPodTestCases()
+
+	probeSNATipv4 := netip.MustParseAddr("169.254.7.127")
+	probeSNATipv6 := netip.MustParseAddr("e9ac:1e77:90ca:399f:4d6d:ece2:2f9b:3164")
+	ext := &dep.RealDependencies{
+		HostFilesystemPodNetwork: false,
+		NetworkNamespace:         "",
+	}
+	iptVer, err := ext.DetectIptablesVersion(false)
+	if err != nil {
+		t.Fatalf("Can't detect iptables version: %v", err)
+	}
+
+	ipt6Ver, err := ext.DetectIptablesVersion(true)
+	if err != nil {
+		t.Fatalf("Can't detect ip6tables version")
+	}
+	scope := istiolog.FindScope(istiolog.DefaultScopeName)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{}
+			tt.config(cfg)
+			var stdout, stderr bytes.Buffer
+			deps := &dep.RealDependencies{}
+			iptConfigurator, _, err := NewIptablesConfigurator(cfg, cfg, deps, deps, EmptyNlDeps())
+			builder := iptConfigurator.AppendInpodRules(probeSNATipv4, probeSNATipv6, tt.ingressMode)
+			if err != nil {
+				t.Fatalf("failed to setup iptables configurator: %v", err)
+			}
+
+			defer func() {
+				assert.NoError(t, iptConfigurator.DeleteInpodRules())
+				residueExists, deltaExists := iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+				assert.Equal(t, residueExists, true)
+				assert.Equal(t, deltaExists, true)
+				// Remove additional rule
+				cmd := exec.Command("iptables", "-t", "nat", "-D", "OUTPUT", "-p", "tcp", "--dport", "123", "-j", "ACCEPT")
+				cmd.Stdout = &stdout
+				cmd.Stderr = &stderr
+				if err := cmd.Run(); err != nil {
+					t.Errorf("iptables cmd (%s %s) failed: %s", cmd.Path, cmd.Args, stderr.String())
+				}
+				residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+				assert.Equal(t, residueExists, false)
+				assert.Equal(t, deltaExists, true)
+			}()
+
+			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, tt.ingressMode))
+			residueExists, deltaExists := iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, true)
+			assert.Equal(t, deltaExists, false)
+
+			cmd := exec.Command("iptables", "-t", "nat", "-N", "ISTIO_TEST")
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+			if err := cmd.Run(); err != nil {
+				t.Errorf("iptables cmd (%s %s) failed: %s", cmd.Path, cmd.Args, stderr.String())
+			}
+
+			cmd = exec.Command("iptables", "-t", "nat", "-A", "OUTPUT", "-j", "ISTIO_TEST")
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+			if err := cmd.Run(); err != nil {
+				t.Errorf("iptables cmd (%s %s) failed: %s", cmd.Path, cmd.Args, stderr.String())
+			}
+
+			cmd = exec.Command("iptables", "-t", "nat", "-A", "ISTIO_TEST", "-p", "tcp", "--dport", "123", "-j", "ACCEPT")
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+			if err := cmd.Run(); err != nil {
+				t.Errorf("iptables cmd (%s %s) failed: %s", cmd.Path, cmd.Args, stderr.String())
+			}
+
+			// Apply required after tempering with ISTIO chains
+			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, true)
+			assert.Equal(t, deltaExists, true)
+
+			// Creating new inpod rules should fail if reconciliation is disabled
+			cfg.Reconcile = false
+			assert.Error(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, tt.ingressMode))
+
+			// Creating new inpod rules should succeed if reconciliation is enabled
+			cfg.Reconcile = true
+			assert.NoError(t, iptConfigurator.CreateInpodRules(scopes.CNIAgent, probeSNATipv4, probeSNATipv6, tt.ingressMode))
+			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, true)
+			assert.Equal(t, deltaExists, false)
+
+			// Jump added by tempering shall no longer exist
+			cmd = exec.Command("iptables", "-t", "nat", "-C", "OUTPUT", "-j", "ISTIO_TEST")
+			assert.Error(t, cmd.Run())
+
+			// Diverge from installation
+			cmd = exec.Command("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "tcp", "--dport", "123", "-j", "ACCEPT")
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+			if err := cmd.Run(); err != nil {
+				t.Errorf("iptables cmd (%s %s) failed: %s", cmd.Path, cmd.Args, stderr.String())
+			}
+
+			// No delta after tempering with non-ISTIO chains
+			residueExists, deltaExists = iptablescapture.VerifyIptablesState(scope, iptConfigurator.ext, builder, &iptVer, &ipt6Ver)
+			assert.Equal(t, residueExists, true)
+			assert.Equal(t, deltaExists, false)
 		})
 	}
 }
