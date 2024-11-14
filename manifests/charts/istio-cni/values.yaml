@@ -56,9 +56,6 @@ _internal_defaults_do_not_set:
     # If enabled, and ambient is enabled, iptables will reconcile pre-existing
     # and incompatible iptables rules instead of failing if drift is detected.
     reconcileIptables: false
-    # Bypasses iptables idempotency handling, and attempts to apply iptables rules regardless of table state, which may cause unrecoverable failures.
-    # Do not use unless you need to work around an issue of the idempotency handling. This flag will be removed in future releases.
-    forceApplyIptables: false
 
 
   repair:
