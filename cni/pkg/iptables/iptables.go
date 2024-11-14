@@ -466,7 +466,7 @@ func (cfg *IptablesConfigurator) executeCommands(log *istiolog.Scope, iptablesBu
 		// Remove leftovers from non-matching istio iptables cfg
 		if cfg.cfg.Reconcile {
 			log.Info("Performing cleanup of any unexpected leftovers from previous iptables executions")
-			cfg.CleanupIstioLeftovers(cfg.ext, iptablesBuilder, &cfg.iptV, &cfg.ipt6V)
+			cfg.CleanupIstioLeftovers(log, cfg.ext, iptablesBuilder, &cfg.iptV, &cfg.ipt6V)
 		}
 	}
 
@@ -483,7 +483,7 @@ func (cfg *IptablesConfigurator) executeCommands(log *istiolog.Scope, iptablesBu
 	return errors.Join(execErrs...)
 }
 
-func (cfg *IptablesConfigurator) CleanupIstioLeftovers(ext dep.Dependencies, ruleBuilder *builder.IptablesRuleBuilder,
+func (cfg *IptablesConfigurator) CleanupIstioLeftovers(log *istiolog.Scope, ext dep.Dependencies, ruleBuilder *builder.IptablesRuleBuilder,
 	iptV *dep.IptablesVersion, ipt6V *dep.IptablesVersion,
 ) {
 	for _, ipVer := range []*dep.IptablesVersion{iptV, ipt6V} {
@@ -495,6 +495,8 @@ func (cfg *IptablesConfigurator) CleanupIstioLeftovers(ext dep.Dependencies, rul
 			currentState := ruleBuilder.GetStateFromSave(output.String())
 			leftovers := iptablescapture.HasIstioLeftovers(currentState)
 			if len(leftovers) > 0 {
+				log.Infof("Detected Istio iptables artifacts from a previous execution; initiating a second cleanup pass.")
+				log.Debugf("Istio iptables artifacts identified for cleanup: %+v", leftovers)
 				cfg.tryExecuteIptablesCommands(ipVer, builder.BuildCleanupFromState(leftovers))
 			}
 		}
