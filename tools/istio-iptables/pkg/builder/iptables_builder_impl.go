@@ -375,9 +375,15 @@ func (rb *IptablesRuleBuilder) GetStateFromSave(data string) map[string]map[stri
 
 		rule := strings.Split(line, " ")
 		ruleChain := ""
+		toAdd := false
 		for i, item := range rule {
 			if (item == "--append" || item == "-A" || item == "--insert" || item == "-I") && i+1 < len(rule) {
+				toAdd = true
 				ruleChain = rule[i+1]
+			} else if (item == "--new" || item == "-N") && i+1 < len(rule) {
+				if strings.HasPrefix(rule[i+1], "ISTIO") {
+					ruleChain = rule[i+1]
+				}
 			}
 		}
 		if ruleChain == "" {
@@ -387,7 +393,9 @@ func (rb *IptablesRuleBuilder) GetStateFromSave(data string) map[string]map[stri
 		if !ok {
 			result[table][ruleChain] = []string{}
 		}
-		result[table][ruleChain] = append(result[table][ruleChain], line)
+		if toAdd {
+			result[table][ruleChain] = append(result[table][ruleChain], line)
+		}
 	}
 	return result
 }
