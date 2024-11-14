@@ -99,6 +99,18 @@ check_loop:
 					}
 				}
 			}
+			for table, chains := range currentState {
+				for chain := range chains {
+					if strings.HasPrefix(chain, "ISTIO_") {
+						_, ok := expectedState[table][chain]
+						if !ok {
+							deltaExists = true
+							log.Debugf("Found chain %s (table: %s) in current state which is missing in expected state", chain, table)
+							break check_loop
+						}
+					}
+				}
+			}
 			for _, cmd := range ipCfg.checkRules {
 				if err := ext.Run(constants.IPTables, ipCfg.ver, nil, cmd...); err != nil {
 					deltaExists = true
