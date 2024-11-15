@@ -94,7 +94,7 @@ check_loop:
 					currentRules, ok := currentState[table][chain]
 					if !ok || (strings.HasPrefix(chain, "ISTIO_") && len(rules) != len(currentRules)) {
 						deltaExists = true
-						log.Debugf("Mismatching number of rules in chain %s between current and expected state", chain)
+						log.Debugf("Mismatching number of rules in chain %s (table: %s) between current and expected state", chain, table)
 						break check_loop
 					}
 				}
