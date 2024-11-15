@@ -105,9 +105,6 @@ type RepairConfig struct {
 	// Whether to label broken pods
 	LabelPods bool
 
-	// Whether to reconcile iptables
-	Reconcile bool
-
 	// Filters for race repair, including name of sidecar annotation, name of init container,
 	// init container termination message and exit code.
 	SidecarAnnotation  string
@@ -166,6 +163,5 @@ func (c RepairConfig) String() string {
 	b.WriteString("InitExitCode: " + fmt.Sprint(c.InitExitCode) + "\n")
 	b.WriteString("LabelSelectors: " + c.LabelSelectors + "\n")
 	b.WriteString("FieldSelectors: " + c.FieldSelectors + "\n")
-	b.WriteString("Reconcile: " + c.FieldSelectors + "\n")
 	return b.String()
 }
