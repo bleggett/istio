@@ -466,7 +466,7 @@ func (cfg *IptablesConfigurator) executeCommands(log *istiolog.Scope, iptablesBu
 		// Remove leftovers from non-matching istio iptables cfg
 		if cfg.cfg.Reconcile {
 			log.Info("Performing cleanup of any unexpected leftovers from previous iptables executions")
-			cfg.CleanupIstioLeftovers(log, cfg.ext, iptablesBuilder, &cfg.iptV, &cfg.ipt6V)
+			cfg.cleanupIstioLeftovers(log, cfg.ext, iptablesBuilder, &cfg.iptV, &cfg.ipt6V)
 		}
 	}
 
@@ -483,7 +483,7 @@ func (cfg *IptablesConfigurator) executeCommands(log *istiolog.Scope, iptablesBu
 	return errors.Join(execErrs...)
 }
 
-func (cfg *IptablesConfigurator) CleanupIstioLeftovers(log *istiolog.Scope, ext dep.Dependencies, ruleBuilder *builder.IptablesRuleBuilder,
+func (cfg *IptablesConfigurator) cleanupIstioLeftovers(log *istiolog.Scope, ext dep.Dependencies, ruleBuilder *builder.IptablesRuleBuilder,
 	iptV *dep.IptablesVersion, ipt6V *dep.IptablesVersion,
 ) {
 	for _, ipVer := range []*dep.IptablesVersion{iptV, ipt6V} {
