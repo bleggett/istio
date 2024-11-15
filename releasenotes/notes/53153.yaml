@@ -10,8 +10,5 @@ kind: feature
 area: traffic-management
 releaseNotes:
 - |
-  **Added** `--cleanup-only` flag to CNI istio-iptables to perform a cleanup of chains/rules without creating new ones.
-- |
-  **Added** `--reconcile` flag to CNI istio-iptables to reconcile iptables if existing chains/rules are found and a drift with the desired state is detected.
-- |
-  **Added** `--force-apply` flag to CNI istio-iptables to override the idempotency logic if detection incorrectly assumes rules are already applied.
+  **Added** `ambient.reconcileIptablesOnStartup` field in the `istio-cni` chart and the corresponding `AMBIENT_RECONCILE_POD_RULES_ON_STARTUP` flag
+  to control whether the ambient CNI agent should reconcile the iptables of pods at startup.

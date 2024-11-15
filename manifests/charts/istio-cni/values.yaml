@@ -53,9 +53,9 @@ _internal_defaults_do_not_set:
     dnsCapture: false
     # If enabled, and ambient is enabled, enables ipv6 support
     ipv6: true
-    # If enabled, and ambient is enabled, iptables will reconcile pre-existing
-    # and incompatible iptables rules instead of failing if drift is detected.
-    reconcileIptables: false
+    # If enabled, and ambient is enabled, the cni agent will reconcile incompatible
+    # iptables rules/chains at startup
+    reconcileIptablesOnStartup: false
 
 
   repair:
