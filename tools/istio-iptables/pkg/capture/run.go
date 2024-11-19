@@ -778,7 +778,7 @@ func (cfg *IptablesConfigurator) executeCommands(iptVer, ipt6Ver *dep.IptablesVe
 
 	residueExists, deltaExists := VerifyIptablesState(log.FindScope(log.DefaultScopeName), cfg.ext, cfg.ruleBuilder, iptVer, ipt6Ver)
 	if residueExists && deltaExists && !cfg.cfg.Reconcile {
-		log.Warn("reconcile is needed but no-reconcile flag is set. Unexpected behavior may occur due to preexisting iptables rules")
+		log.Info("reconcile is recommended but no-reconcile flag is set. Unexpected behavior may occur due to preexisting iptables rules")
 	}
 	// Cleanup Step
 	if (residueExists && deltaExists && cfg.cfg.Reconcile) || cfg.cfg.CleanupOnly {
