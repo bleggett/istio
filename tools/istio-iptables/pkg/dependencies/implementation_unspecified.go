@@ -32,7 +32,7 @@ func (r *RealDependencies) execute(cmd string, ignoreErrors bool, stdin io.Reade
 	return ErrNotImplemented
 }
 
-func (r *RealDependencies) executeXTables(cmd constants.IptablesCmd, iptVer *IptablesVersion, ignoreErrors bool, silenceOutput bool, stdin io.ReadSeeker, args ...string) error {
+func (r *RealDependencies) executeXTables(cmd constants.IptablesCmd, iptVer *IptablesVersion, ignoreErrors bool, stdin io.ReadSeeker, args ...string) error {
 	_, err := r.executeXTablesWithOutput(cmd, iptVer, ignoreErrors, false, stdin, args...)
 	return err
 }
