@@ -15,7 +15,7 @@ data:
   CURRENT_AGENT_VERSION: {{ .Values.tag | default .Values.global.tag | quote }}
   AMBIENT_ENABLED: {{ .Values.ambient.enabled | quote }}
   AMBIENT_AUTOENROLL: {{ .Values.ambient.autoEnroll | default "false" | quote }}
-  AMBIENT_AUTOENROLL_EXCLUDE_NAMESPACES: "{{ range $idx, $ns := .Values.ambient.autoEnrollExcludeNamespaces }}{{ if $idx }},{{ end }}{{ $ns }}{{ end }}"
+  AMBIENT_AUTOENROLL_DISCOVERY_SELECTORS: {{ .Values.ambient.autoEnrollDiscoverySelectors | default dict | toJson }}
   AMBIENT_DNS_CAPTURE: {{ .Values.ambient.dnsCapture | default "false" | quote  }}
   AMBIENT_IPV6: {{ .Values.ambient.ipv6 | default "false" | quote }}
   {{- if .Values.cniConfFileName }} # K8S < 1.24 doesn't like empty values

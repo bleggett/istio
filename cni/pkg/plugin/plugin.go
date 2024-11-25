@@ -62,12 +62,12 @@ type Config struct {
 	types.NetConf
 
 	// Add plugin-specific flags here
-	PluginLogLevel                     string   `json:"plugin_log_level"`
-	CNIAgentRunDir                     string   `json:"cni_agent_run_dir"`
-	ExcludeNamespaces                  []string `json:"exclude_namespaces"`
-	AmbientEnabled                     bool     `json:"ambient_enabled"`
-	AmbientAutoEnroll                  bool     `json:"ambient_autoenroll"`
-	AmbientAutoEnrollExcludeNamespaces []string `json:"ambient_autoenroll_exclude_namespaces"`
+	PluginLogLevel                      string                            `json:"plugin_log_level"`
+	CNIAgentRunDir                      string                            `json:"cni_agent_run_dir"`
+	ExcludeNamespaces                   []string                          `json:"exclude_namespaces"`
+	AmbientEnabled                      bool                              `json:"ambient_enabled"`
+	AmbientAutoEnroll                   bool                              `json:"ambient_autoenroll"`
+	AmbientAutoEnrollDiscoverySelectors util.AutoEnrollDiscoverySelectors `json:"ambient_autoenroll_discovery_selectors"`
 }
 
 // K8sArgs is the valid CNI_ARGS used for Kubernetes
@@ -201,7 +201,7 @@ func doAddRun(args *skel.CmdArgs, conf *Config, kClient kubernetes.Interface, ru
 	// For ambient pods, this is all the logic we need to run
 	if conf.AmbientEnabled {
 		log.Debugf("istio-cni ambient cmdAdd podName: %s - checking if ambient enabled", podName)
-		podIsAmbient, err := isAmbientPod(kClient, podName, podNamespace, conf.AmbientAutoEnroll, conf.AmbientAutoEnrollExcludeNamespaces)
+		podIsAmbient, err := isAmbientPod(kClient, podName, podNamespace, conf.AmbientAutoEnroll, conf.AmbientAutoEnrollDiscoverySelectors)
 		if err != nil {
 			log.Errorf("istio-cni cmdAdd failed to check ambient: %s", err)
 		}
@@ -328,7 +328,7 @@ func CmdDelete(args *skel.CmdArgs) (err error) {
 	return nil
 }
 
-func isAmbientPod(client kubernetes.Interface, podName, podNamespace string, isAutoenroll bool, excludeNamespaces []string) (bool, error) {
+func isAmbientPod(client kubernetes.Interface, podName, podNamespace string, isAutoenroll bool, discoverySelectors util.AutoEnrollDiscoverySelectors) (bool, error) {
 	pod, err := client.CoreV1().Pods(podNamespace).Get(context.Background(), podName, metav1.GetOptions{})
 	if err != nil {
 		return false, err
@@ -338,5 +338,5 @@ func isAmbientPod(client kubernetes.Interface, podName, podNamespace string, isA
 		return false, err
 	}
 
-	return util.PodRedirectionEnabled(ns, pod, isAutoenroll, excludeNamespaces), nil
+	return util.PodRedirectionEnabled(ns, pod, isAutoenroll, discoverySelectors), nil
 }

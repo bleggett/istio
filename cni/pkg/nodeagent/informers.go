@@ -41,7 +41,7 @@ var (
 )
 
 type K8sHandlers interface {
-	GetPodIfAmbient(podName, podNamespace string, autoEnroll bool, excludeNamespaces []string) (*corev1.Pod, error)
+	GetPodIfAmbient(podName, podNamespace string, autoEnroll bool, discoverySelectors util.AutoEnrollDiscoverySelectors) (*corev1.Pod, error)
 	GetActiveAmbientPodSnapshot() []*corev1.Pod
 	Start()
 }
@@ -93,7 +93,7 @@ func setupHandlers(ctx context.Context, kubeClient kube.Client, dataplane MeshDa
 // * An error if the pod cannot be found
 // * nil if the pod is found, but does not have ambient enabled
 // * the pod, if it is found and ambient is enabled
-func (s *InformerHandlers) GetPodIfAmbient(podName, podNamespace string, autoEnroll bool, excludeNamespaces []string) (*corev1.Pod, error) {
+func (s *InformerHandlers) GetPodIfAmbient(podName, podNamespace string, autoEnroll bool, discoverySelectors util.AutoEnrollDiscoverySelectors) (*corev1.Pod, error) {
 	ns := s.namespaces.Get(podNamespace, "")
 	if ns == nil {
 		return nil, fmt.Errorf("failed to find namespace %v", ns)
@@ -102,7 +102,7 @@ func (s *InformerHandlers) GetPodIfAmbient(podName, podNamespace string, autoEnr
 	if pod == nil {
 		return nil, fmt.Errorf("failed to find pod %v", ns)
 	}
-	if util.PodRedirectionEnabled(ns, pod, autoEnroll, excludeNamespaces) {
+	if util.PodRedirectionEnabled(ns, pod, autoEnroll, discoverySelectors) {
 		return pod, nil
 	}
 	return nil, nil
@@ -230,7 +230,7 @@ func (s *InformerHandlers) reconcilePod(input any) error {
 		}
 		wasAnnotated := oldPod.Annotations != nil && oldPod.Annotations[annotation.AmbientRedirection.Name] == constants.AmbientRedirectionEnabled
 		isAnnotated := newPod.Annotations != nil && newPod.Annotations[annotation.AmbientRedirection.Name] == constants.AmbientRedirectionEnabled
-		shouldBeEnabled := util.PodRedirectionEnabled(ns, newPod, s.args.AutoEnroll, s.args.ExcludeNamespaces)
+		shouldBeEnabled := util.PodRedirectionEnabled(ns, newPod, s.args.AutoEnroll, s.args.AutoEnrollDiscoverySelectors)
 		isTerminated := kube.CheckPodTerminal(newPod)
 		// Check intent (labels) versus status (annotation) - is there a delta we need to fix?
 		changeNeeded := (isAnnotated != shouldBeEnabled) && !isTerminated

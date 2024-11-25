@@ -59,11 +59,19 @@ _internal_defaults_do_not_set:
     # Pods in `autoEnrollExcludeNamespaces` will not be autoenrolled.
     # Explicit pod and namespace enrollment labels will still be respected in this mode.
     autoEnroll: false
-    # Namespaces where pods will never be autoenrolled, if `autoEnroll` is true. Note that this only a denylist for autoenrollment, and not for ambient capture generally.
-    # These namespaces (and the pods in them) can still be enrolled/excluded via dataplane label, if needed.
-    autoEnrollExcludeNamespaces:
-      - kube-system
-      - istio-system
+    autoEnrollDiscoverySelectors:
+      # namespaceSelectors: {}
+      podSelectors: {}
+      namespaceSelectors:
+        - matchLabels:
+            env: prod
+            region: us-east1
+        - matchExpressions:
+            - key: app
+              operator: In
+              values:
+                - cassandra
+                - spark
 
   repair:
     enabled: true

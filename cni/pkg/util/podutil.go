@@ -22,12 +22,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	"istio.io/api/annotation"
 	"istio.io/api/label"
+	istiomesh "istio.io/api/mesh/v1alpha1"
 	"istio.io/istio/pkg/config/constants"
+	"istio.io/istio/pkg/kube/namespace"
 	"istio.io/istio/pkg/log"
 )
 
@@ -42,61 +45,56 @@ var annotationRemovePatch = []byte(fmt.Sprintf(
 	annotation.AmbientRedirection.Name,
 ))
 
+type AutoEnrollDiscoverySelectors struct {
+	PodSelectors       []*istiomesh.LabelSelector `json:"podSelectors"`
+	NamespaceSelectors []*istiomesh.LabelSelector `json:"namespaceSelectors"`
+}
+
+// TODO BML not sure this is needed, maybe just use naked k8s stuff
+func istioToK8SDiscoverySelectors(discoverySelectors []*istiomesh.LabelSelector) []labels.Selector {
+	var selectors []labels.Selector
+
+	// convert LabelSelectors to Selectors
+	for _, selector := range discoverySelectors {
+		ls, err := namespace.LabelSelectorAsSelector(selector)
+		if err != nil {
+			log.Errorf("error initializing discovery namespaces filter, invalid discovery selector: %v", err)
+			return nil
+		}
+		selectors = append(selectors, ls)
+	}
+
+	return selectors
+}
+
+// matchesDiscoverySelectors compares object labels and selectors, and returns tru
+// if there is a match.
+// If no selectors defined, also returns true (empty selector matches everything)
+func matchesDiscoverySelectors(labels labels.Set, discoverySelectors []labels.Selector) bool {
+	if len(discoverySelectors) == 0 {
+		return true
+	}
+
+	for _, selector := range discoverySelectors {
+		if selector.Matches(labels) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // PodRedirectionEnabled determines if a pod should or should not be configured
 // to have traffic redirected thru the node proxy.
 //
 // NOTE that this is NOT checking if a pod WAS enabled previously, for that see PodRedirectionActive.
 // This is just checking if it SHOULD be enabled under current state.
-func PodRedirectionEnabled(namespace *corev1.Namespace, pod *corev1.Pod, autoEnrollEnabled bool, excludeNamespaces []string) bool {
-	// Check for user opt-out - do the namespace and/or pod have the explicit opt-out labels?
-	hasExplicitOptOut := (namespace.GetLabels()[label.IoIstioDataplaneMode.Name] == constants.DataplaneModeNone ||
-		pod.GetLabels()[label.IoIstioDataplaneMode.Name] == constants.DataplaneModeNone)
-
-	// Check for user opt-in - do the namespace and/or pod have the explicit opt-in labels?
-	hasExplicitOptIn := (namespace.GetLabels()[label.IoIstioDataplaneMode.Name] == constants.DataplaneModeAmbient ||
-		pod.GetLabels()[label.IoIstioDataplaneMode.Name] == constants.DataplaneModeAmbient)
-
-	// Always unconditionally respect explicit opt-out (pod or namespace) if present.
-	if hasExplicitOptOut {
-		// Pod or namespace explicitly asked to not have ambient redirection enabled
-		return false
+func PodRedirectionEnabled(namespace *corev1.Namespace, pod *corev1.Pod, autoEnrollEnabled bool, autoEnrollSelectors AutoEnrollDiscoverySelectors) bool {
+	if autoEnrollEnabled {
+		return selectorBasedPodEnabled(namespace, pod, autoEnrollSelectors)
+	} else {
+		return labelBasedPodEnabled(namespace, pod)
 	}
-
-	// If no autoenroll and no explicit opt-in, pod should be ignored.
-	if !autoEnrollEnabled && !hasExplicitOptIn {
-		return false
-	}
-
-	// If autoenroll enabled and pod does NOT have an explicit opt-in, see
-	// if it's in our list of excluded namespaces.
-	//
-	// This is designed to allow people to always explicitly opt-in pods with labels,
-	// even if they are in a namespace we have been told not to autoenroll.
-	// Basically, explicit labels always win, even for autoenroll-ignored namespaces.
-	if autoEnrollEnabled && !hasExplicitOptIn {
-		// If pod in our autoenroll excluded namespace list (shared with the CNI plugin), it can never be enabled.
-		for _, ns := range excludeNamespaces {
-			if ns == namespace.Name {
-				log.Debugf("excluding %s/%s from autoenroll due to excluded namespace: %s", namespace.Name, pod.Name, ns)
-				return false
-			}
-		}
-	}
-
-	// If we get here, pod is either auto-enrollable OR has an explicit opt-in.
-
-	// Ztunnel and sidecar for a single pod is currently not supported; opt out.
-	if podHasSidecar(pod) {
-		return false
-	}
-
-	// Host network pods cannot be captured, as we require inserting rules into the pod network namespace.
-	// If we were to allow them, we would be writing these rules into the host network namespace, effectively breaking the host.
-	if pod.Spec.HostNetwork {
-		return false
-	}
-
-	return true
 }
 
 // PodRedirectionActive reports on whether the pod _has_ actually been configured for traffic redirection.
@@ -175,4 +173,65 @@ func GetPodIPsIfPresent(pod *corev1.Pod) []netip.Addr {
 		podIPs = append(podIPs, ip)
 	}
 	return podIPs
+}
+
+func labelBasedPodEnabled(namespace *corev1.Namespace, pod *corev1.Pod) bool {
+	// Handle hard/system-level opt-outs first.
+	// Ztunnel and sidecar for a single pod is currently not supported; opt out.
+	if podHasSidecar(pod) {
+		return false
+	}
+
+	// Host network pods cannot be captured, as we require inserting rules into the pod network namespace.
+	// If we were to allow them, we would be writing these rules into the host network namespace, effectively breaking the host.
+	if pod.Spec.HostNetwork {
+		return false
+	}
+
+	// Check for user opt-out - do the namespace and/or pod have the explicit opt-out labels?
+	hasExplicitOptOut := (namespace.GetLabels()[label.IoIstioDataplaneMode.Name] == constants.DataplaneModeNone ||
+		pod.GetLabels()[label.IoIstioDataplaneMode.Name] == constants.DataplaneModeNone)
+
+	// Check for user opt-in - do the namespace and/or pod have the explicit opt-in labels?
+	hasExplicitOptIn := (namespace.GetLabels()[label.IoIstioDataplaneMode.Name] == constants.DataplaneModeAmbient ||
+		pod.GetLabels()[label.IoIstioDataplaneMode.Name] == constants.DataplaneModeAmbient)
+
+	// Always unconditionally respect explicit opt-out (pod or namespace) if present.
+	if hasExplicitOptOut {
+		// Pod or namespace explicitly asked to not have ambient redirection enabled
+		return false
+	}
+
+	// If no autoenroll and no explicit opt-in, pod should be ignored.
+	if !hasExplicitOptIn {
+		return false
+	}
+
+	return true
+}
+
+func selectorBasedPodEnabled(namespace *corev1.Namespace, pod *corev1.Pod, autoEnrollSelectors AutoEnrollDiscoverySelectors) bool {
+	// Ztunnel and sidecar for a single pod is currently not supported; opt out.
+	if podHasSidecar(pod) {
+		return false
+	}
+
+	// Host network pods cannot be captured, as we require inserting rules into the pod network namespace.
+	// If we were to allow them, we would be writing these rules into the host network namespace, effectively breaking the host.
+	if pod.Spec.HostNetwork {
+		return false
+	}
+
+	// If we get this far and are still in play, check selectors to see if namespace and pod selectors match.
+	nsSelectors := istioToK8SDiscoverySelectors(autoEnrollSelectors.NamespaceSelectors)
+	podSelectors := istioToK8SDiscoverySelectors(autoEnrollSelectors.PodSelectors)
+
+	podMatch := matchesDiscoverySelectors(pod.Labels, podSelectors)
+	nsMatch := matchesDiscoverySelectors(namespace.Labels, nsSelectors)
+
+	if nsMatch && podMatch {
+		return true
+	}
+
+	return false
 }

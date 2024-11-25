@@ -33,17 +33,23 @@ import (
 
 func createCNIConfigFile(ctx context.Context, cfg *config.InstallConfig) (string, error) {
 	pluginConfig := plugin.Config{
-		PluginLogLevel:                     cfg.PluginLogLevel,
-		CNIAgentRunDir:                     cfg.CNIAgentRunDir,
-		AmbientEnabled:                     cfg.AmbientEnabled,
-		ExcludeNamespaces:                  strings.Split(cfg.ExcludeNamespaces, ","),
-		AmbientAutoEnrollExcludeNamespaces: strings.Split(cfg.AmbientAutoEnrollExcludeNamespaces, ","),
-		AmbientAutoEnroll:                  cfg.AmbientAutoEnroll,
+		PluginLogLevel:    cfg.PluginLogLevel,
+		CNIAgentRunDir:    cfg.CNIAgentRunDir,
+		AmbientEnabled:    cfg.AmbientEnabled,
+		ExcludeNamespaces: strings.Split(cfg.ExcludeNamespaces, ","),
+		AmbientAutoEnroll: cfg.AmbientAutoEnroll,
 	}
 
 	pluginConfig.Name = "istio-cni"
 	pluginConfig.Type = "istio-cni"
 	pluginConfig.CNIVersion = "0.3.1"
+
+	var selectors util.AutoEnrollDiscoverySelectors
+	if err := json.Unmarshal([]byte(cfg.AmbientAutoEnrollDiscoverySelectors), &selectors); err != nil {
+		return "", err
+	}
+
+	pluginConfig.AmbientAutoEnrollDiscoverySelectors = selectors
 
 	marshalledJSON, err := json.MarshalIndent(pluginConfig, "", "  ")
 	if err != nil {

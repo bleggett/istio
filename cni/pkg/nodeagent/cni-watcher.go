@@ -192,7 +192,7 @@ func (s *CniPluginServer) ReconcileCNIAddEvent(ctx context.Context, addCmd CNIPl
 
 func (s *CniPluginServer) getPodWithRetry(log *istiolog.Scope, name, namespace string) (*corev1.Pod, error) {
 	log.Debugf("Checking if pod %s/%s is enabled for ambient, autoEnroll: %t, excludeNamespaces: %+q",
-		namespace, name, s.args.AutoEnroll, s.args.ExcludeNamespaces)
+		namespace, name, s.args.AutoEnroll, s.args.AutoEnrollDiscoverySelectors)
 	const maxStaleRetries = 10
 	const msInterval = 10
 	retries := 0
@@ -203,7 +203,7 @@ func (s *CniPluginServer) getPodWithRetry(log *istiolog.Scope, name, namespace s
 	// if err is returned, we couldn't find the pod
 	// if nil is returned, we found it but ambient is not enabled
 	// nolint: lll
-	for ambientPod, err = s.handlers.GetPodIfAmbient(name, namespace, s.args.AutoEnroll, s.args.ExcludeNamespaces); (err != nil) && (retries < maxStaleRetries); retries++ {
+	for ambientPod, err = s.handlers.GetPodIfAmbient(name, namespace, s.args.AutoEnroll, s.args.AutoEnrollDiscoverySelectors); (err != nil) && (retries < maxStaleRetries); retries++ {
 		log.Warnf("got an event for pod %s in namespace %s not found in current pod cache, retry %d of %d",
 			name, namespace, retries, maxStaleRetries)
 		if !sleep.UntilContext(s.ctx, time.Duration(msInterval)*time.Millisecond) {

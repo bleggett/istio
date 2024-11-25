@@ -17,6 +17,7 @@ package nodeagent
 import (
 	"net/netip"
 
+	"istio.io/istio/cni/pkg/util"
 	"istio.io/istio/pkg/config/constants"
 	"istio.io/istio/pkg/env"
 )
@@ -44,12 +45,12 @@ const (
 )
 
 type AmbientArgs struct {
-	SystemNamespace   string
-	Revision          string
-	KubeConfig        string
-	ServerSocket      string
-	DNSCapture        bool
-	EnableIPv6        bool
-	AutoEnroll        bool
-	ExcludeNamespaces []string
+	SystemNamespace              string
+	Revision                     string
+	KubeConfig                   string
+	ServerSocket                 string
+	DNSCapture                   bool
+	EnableIPv6                   bool
+	AutoEnroll                   bool
+	AutoEnrollDiscoverySelectors util.AutoEnrollDiscoverySelectors
 }

@@ -265,11 +265,11 @@ func constructConfig() (*config.Config, error) {
 		ExcludeNamespaces: viper.GetString(constants.ExcludeNamespaces),
 		ZtunnelUDSAddress: viper.GetString(constants.ZtunnelUDSAddress),
 
-		AmbientEnabled:                     viper.GetBool(constants.AmbientEnabled),
-		AmbientDNSCapture:                  viper.GetBool(constants.AmbientDNSCapture),
-		AmbientIPv6:                        viper.GetBool(constants.AmbientIPv6),
-		AmbientAutoEnroll:                  viper.GetBool(constants.AmbientAutoEnroll),
-		AmbientAutoEnrollExcludeNamespaces: viper.GetString(constants.AmbientAutoEnrollExcludeNamespaces),
+		AmbientEnabled:                      viper.GetBool(constants.AmbientEnabled),
+		AmbientDNSCapture:                   viper.GetBool(constants.AmbientDNSCapture),
+		AmbientIPv6:                         viper.GetBool(constants.AmbientIPv6),
+		AmbientAutoEnroll:                   viper.GetBool(constants.AmbientAutoEnroll),
+		AmbientAutoEnrollDiscoverySelectors: viper.GetString(constants.AmbientAutoEnrollDiscoverySelectors),
 	}
 
 	if len(installCfg.K8sNodeName) == 0 {
