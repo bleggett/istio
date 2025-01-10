@@ -19,6 +19,7 @@ package ambient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/netip"
@@ -64,6 +65,7 @@ import (
 	"istio.io/istio/pkg/test/framework/resource/config/apply"
 	"istio.io/istio/pkg/test/framework/resource/config/cleanup"
 	kubetest "istio.io/istio/pkg/test/kube"
+	"istio.io/istio/pkg/test/scopes"
 	"istio.io/istio/pkg/test/util/assert"
 	"istio.io/istio/pkg/test/util/file"
 	"istio.io/istio/pkg/test/util/retry"
@@ -3208,6 +3210,22 @@ func restartZtunnel(t framework.TestContext) {
 	}, retry.Timeout(60*time.Second), retry.Delay(2*time.Second)); err != nil {
 		t.Fatalf("failed to wait for ztunnel rollout status for: %v", err)
 	}
+
+	d, err := ds.Get(context.Background(), "ztunnel", metav1.GetOptions{})
+
+	retry.UntilSuccessOrFail(ctx, func() error {
+		scopes.Framework.Infof("Checking that we have the expected number of ztunnel pods...")
+		pods, err := t.AllClusters()[0].PodsForSelector(context.TODO(), i.Settings().SystemNamespace, "app=ztunnel")
+		if err != nil {
+			return err
+		}
+		if len(pods.Items) != d.Status.DesiredNumberScheduled {
+			return errors.New("still have straggling ztunnel pods from rollout restart")
+		}
+		return nil
+
+	}, retry.Delay(1*time.Second), retry.Timeout(80*time.Second))
+
 	if _, err := kubetest.CheckPodsAreReady(kubetest.NewPodFetch(t.AllClusters()[0], i.Settings().SystemNamespace, "app=ztunnel")); err != nil {
 		t.Fatal(err)
 	}
